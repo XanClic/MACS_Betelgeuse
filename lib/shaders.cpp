@@ -1,8 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
 
-#define GL_GLEXT_PROTOTYPES
-
 #include <GL/gl.h>
 #include <GL/glext.h>
 
@@ -12,6 +10,15 @@
 
 using namespace macs;
 using namespace macs::internals;
+
+namespace macs
+{
+    namespace internals
+    {
+        shader *basic_vertex_shader;
+        program *basic_pipeline;
+    }
+}
 
 
 shader::shader(type t)
@@ -146,7 +153,7 @@ void program::use(void)
 {
     glUseProgram(id);
 
-    dbgprintf("[pr%u] Active.\n", id);
+//  dbgprintf("[pr%u] Active.\n", id);
 }
 
 
@@ -164,5 +171,28 @@ prg_uniform::prg_uniform(unsigned uni_id):
 
 void prg_uniform::operator=(const texture *t)
 {
-    glUniform1i(id, t->unit);
+    for (int i = 0; i < tex_units; i++)
+    {
+        if ((*tmu_mgr)[i] == t)
+        {
+            glUniform1i(id, i);
+            return;
+        }
+    }
+
+    throw exc::tex_na;
+}
+
+void prg_uniform::operator=(const texture_array *t)
+{
+    for (int i = 0; i < tex_units; i++)
+    {
+        if ((*tmu_mgr)[i] == t)
+        {
+            glUniform1i(id, i);
+            return;
+        }
+    }
+
+    throw exc::tex_na;
 }

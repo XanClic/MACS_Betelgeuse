@@ -9,6 +9,9 @@
 #ifndef MACS_INTERNALS_HPP
 #define MACS_INTERNALS_HPP
 
+#include <cstdio>
+#include <vector>
+
 #include <GL/gl.h>
 
 
@@ -19,7 +22,6 @@
 
 
 #ifdef DEBUG
-#include <stdio.h>
 /// Puts quotation marks around its argument.
 #define quote(x) #x
 /// Evalutes its argument before quoting it.
@@ -44,7 +46,9 @@
 
 namespace macs
 {
+    class root;
     class texture;
+    class texture_array;
 
 
     /**
@@ -58,14 +62,18 @@ namespace macs
         /// OpenGL minor version
         extern int ogl_min;
 
-        /// Draw buffer count
+        /// Draw buffer count allowed
         extern int draw_bufs;
-
         /// Color buffer attachment count for FBOs
         extern int col_attach;
 
         /// Texture units available
         extern int tex_units;
+
+        /// Width for every render element
+        extern int width;
+        /// Height for every render element
+        extern int height;
 
 
 
@@ -166,6 +174,8 @@ namespace macs
                  *       shader uses this sampler.
                  */
                 void operator=(const texture *tex);
+                /// @overload void operator=(const texture *tex)
+                void operator=(const texture_array *tex_arr);
 
             private:
                 /// OpenGL uniform location ID
@@ -228,6 +238,147 @@ namespace macs
                 /// OpenGL program ID
                 unsigned id;
         };
+
+
+        /**
+         * Represents a texture mapping unit. Every input texture has to be
+         * assigned to a TMU. This class is used for managing one such slot.
+         */
+        class tmu
+        {
+            public:
+                /**
+                 * Simple constructor.
+                 *
+                 * @param unit Hardware texture unit index.
+                 */
+                tmu(int unit = 0);
+
+
+                /**
+                 * Assigns a texture to this unit.
+                 *
+                 * @param tex Texture to be assigned.
+                 */
+                void operator=(root *tex);
+
+                /**
+                 * Converts this TMU to the assigned texture.
+                 *
+                 * @return Assigned texture.
+                 */
+                operator root *(void)
+                { return assigned; }
+
+                /**
+                 * Changes the physical TMU this object correspondends to.
+                 *
+                 * @param tmu_i Physical TMU index.
+                 */
+                void reassign(int tmu_i)
+                { unit = tmu_i; }
+
+
+            private:
+                /// Hardware TMU index.
+                int unit;
+                /// Texture which has been assigned.
+                root *assigned;
+        };
+
+        /**
+         * Manages all TMUs. This class is used for managing all those input
+         * slots.
+         */
+        class tmu_manager
+        {
+            public:
+                /**
+                 * Initializes the manager and all TMUs.
+                 *
+                 * @param units Number of units to be managed.
+                 */
+                tmu_manager(int units);
+
+                /// Basic deconstructor.
+                ~tmu_manager(void);
+
+
+                /**
+                 * Marks all TMUs as loosely assigned.
+                 */
+                void loosen(void);
+
+                /**
+                 * Tries to assign this texture to a TMU. If a unit is found
+                 * which is already assigned to this texture, this will mark
+                 * that TMU as definitely assigned.
+                 *
+                 * @param tex Texture to assign a TMU to.
+                 *
+                 * @return True, iff a TMU has been found which has already been
+                 *         assigned to it.
+                 */
+                bool operator&=(root *tex);
+
+                /**
+                 * Assigns this texture to a TMU. Finds a loosely assigned TMU
+                 * and assigns it to that texture.
+                 *
+                 * @param tex Texture to assign a TMU to.
+                 *
+                 * @note This function will also find a new TMU if another has
+                 *       already been set to the given texture, so you should
+                 *       use <tt>operator&=</tt> before.
+                 */
+                void operator+=(root *tex);
+
+                /**
+                 * The last function in the managing cycle. It essentially
+                 * just disables loosely assigned units.
+                 */
+                void update(void);
+
+
+                /**
+                 * Indexing function.
+                 *
+                 * @param index TMU to be accessed.
+                 *
+                 * @return Pointer to TMU object.
+                 */
+                tmu &operator[](int index)
+                { return tmus[index]; }
+
+
+            private:
+                /// TMU count
+                int units;
+                /// TMU array
+                tmu *tmus;
+                /// True iff definitely assigned
+                bool *definitely;
+        };
+
+
+        /// Simple vertex shader which just pipes input XY to output.
+        extern shader *basic_vertex_shader;
+        /**
+         * Simple program. It uses the basic vertex shader and a standard
+         * fragment shader.
+         */
+        extern program *basic_pipeline;
+
+        /// Central TMU manager.
+        extern tmu_manager *tmu_mgr;
+
+
+        /**
+         * Draws a quad. Draws a textured quad to the whole framebuffer
+         * (implying that the modelview and projection matrices are both
+         * identity matrices or a shader is used which circumvents this).
+         */
+        void draw_quad(void);
     }
 }
 

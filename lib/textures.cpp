@@ -1,20 +1,34 @@
+#include <cstdlib>
+#include <cstring>
+#include <vector>
+
 #include <GL/gl.h>
 
 #include "macs.hpp"
+#include "macs-internals.hpp"
 
 
 using namespace macs;
 
-texture::texture(int w, int h):
-    width(w),
-    height(h)
+
+texture::texture(const char *n)
 {
+    type = root::texture;
+
+    name = strdup(n);
+
     glGenTextures(1, &id);
+
+    (*internals::tmu_mgr)[0] = this;
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 }
 
 texture::~texture(void)
 {
     glDeleteTextures(1, &id);
+
+    free((void *)name);
 }
 
 
@@ -24,8 +38,8 @@ void texture::allocate(void)
         return;
 
 
-    glBindTexture(GL_TEXTURE_2D, id);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F_ARB, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+    (*internals::tmu_mgr)[0] = this;
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F_ARB, internals::width, internals::height, 0, GL_RGBA, GL_FLOAT, NULL);
 
     allocated = true;
 }
@@ -34,8 +48,8 @@ void texture::allocate(void)
 #define texture_write(format, gl_format) \
     void texture::write(const formats::format *src) \
     { \
-        glBindTexture(GL_TEXTURE_2D, id); \
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F_ARB, width, height, 0, gl_format, GL_FLOAT, src); \
+        (*internals::tmu_mgr)[0] = this; \
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F_ARB, internals::width, internals::height, 0, gl_format, GL_FLOAT, src); \
         allocated = true; \
     }
 
@@ -51,7 +65,7 @@ texture_write(f0,    GL_RED )
     { \
         if (!allocated) \
             return; \
-        glBindTexture(GL_TEXTURE_2D, id); \
+        (*internals::tmu_mgr)[0] = this; \
         glGetTexImage(GL_TEXTURE_2D, 0, gl_format, GL_FLOAT, dst); \
     }
 
@@ -63,10 +77,11 @@ texture_read(f0,    GL_RED )
 
 
 
-void texture::_assign(int tex_unit)
+void texture::display(void)
 {
-    glActiveTexture(GL_TEXTURE0 + tex_unit);
-    glBindTexture(GL_TEXTURE_2D, id);
+    (*internals::tmu_mgr)[0] = this;
 
-    unit = tex_unit;
+    internals::basic_pipeline->use();
+    internals::basic_pipeline->uniform("tex") = this;
+    internals::draw_quad();
 }

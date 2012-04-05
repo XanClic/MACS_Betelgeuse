@@ -1,3 +1,8 @@
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <GL/gl.h>
 
 #include "macs.hpp"
@@ -7,7 +12,7 @@
 using namespace macs;
 using namespace macs::internals;
 
-bool macs::init(void)
+bool macs::init(int width, int height)
 {
     // Check whether the system meets the requirements
 
@@ -46,7 +51,7 @@ bool macs::init(void)
     }
 
 
-    glGetIntegerv(GL_MAX_TEXTURE_UNITS, &tex_units);
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &tex_units);
 
     dbgprintf("%i texture units encountered.\n", tex_units);
 
@@ -64,13 +69,8 @@ bool macs::init(void)
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
 
-    glMatrixMode(GL_TEXTURE);
-    glLoadIdentity();
-
-    glMatrixMode(GL_COLOR);
-    glLoadIdentity();
-
     glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
 
 
     glClearColor(0.f, 0.f, 0.f, 0.f);
@@ -81,7 +81,79 @@ bool macs::init(void)
     glDisable(GL_ALPHA_TEST);
     glDisable(GL_STENCIL_TEST);
     glDisable(GL_BLEND);
-    glEnable(GL_TEXTURE_2D);
+
+
+
+    internals::basic_vertex_shader = new internals::shader(internals::shader::vertex);
+
+
+    FILE *fp = fopen("shaders/basic-vertex.glsl", "r");
+    if (fp == NULL)
+    {
+        dbgprintf("Could not load basic vertex shader file: %s\n", strerror(errno));
+        return false;
+    }
+
+    internals::basic_vertex_shader->load(fp);
+
+    fclose(fp);
+
+
+    if (!internals::basic_vertex_shader->compile())
+    {
+        dbgprintf("Could not compile the basic vertex shader.\n");
+        return false;
+    }
+
+
+
+    shader *frag_sh = new internals::shader(internals::shader::fragment);
+
+
+    fp = fopen("shaders/basic-fragment.glsl", "r");
+    if (fp == NULL)
+    {
+        dbgprintf("Could not load basic fragment shader file: %s\n", strerror(errno));
+        return false;
+    }
+
+    frag_sh->load(fp);
+
+    fclose(fp);
+
+
+    if (!frag_sh->compile())
+    {
+        dbgprintf("Could not compile the basic fragment shader.\n");
+        return false;
+    }
+
+
+
+    internals::basic_pipeline = new internals::program;
+    internals::basic_pipeline->attach(internals::basic_vertex_shader);
+    internals::basic_pipeline->attach(frag_sh);
+
+    if (!internals::basic_pipeline->link())
+    {
+        dbgprintf("Could not link basic pipeline.\n");
+        return false;
+    }
+
+
+    delete frag_sh;
+
+
+
+    glViewport(0, 0, width, height);
+
+
+
+    internals::width = width;
+    internals::height = height;
+
+    internals::tmu_mgr = new internals::tmu_manager(tex_units);
+
 
 
     return true;

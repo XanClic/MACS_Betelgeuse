@@ -1,5 +1,5 @@
 CXX ?= g++
-CXXFLAGS += -O3 -Wall -Wextra -Wshadow -std=gnu++0x -Iinclude
+CXXFLAGS += -g -O3 -Wall -Wextra -Wshadow -Wno-switch -std=gnu++11 -Iinclude -D_POSIX_C_SOURCE=201204 -DGL_GLEXT_PROTOTYPES -UGL_GLEXT_LEGACY
 LINK ?= $(CXX)
 LDFLAGS += -Llib -lmacs -lSDL -lGL
 
