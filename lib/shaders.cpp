@@ -1,5 +1,5 @@
+#include <cstddef>
 #include <cstdio>
-#include <cstdlib>
 
 #include <GL/gl.h>
 #include <GL/glext.h>
@@ -23,7 +23,7 @@ namespace macs
 
 shader::shader(type t)
 {
-    id = glCreateShader((int)t);
+    id = glCreateShader(static_cast<int>(t));
 
     dbgprintf("[sh%u] Is %s shader.\n", id, (t == vertex) ? "vertex" : "fragment");
 }
@@ -51,13 +51,14 @@ void shader::load(FILE *fp)
     long length = ftell(fp);
     rewind(fp);
 
-    char *mem = (char *)malloc(length + 1);
+    char *mem = new char[length + 1];
+
     fread(mem, 1, length, fp);
     mem[length] = 0;
 
-    glShaderSource(id, 1, (const char **)&mem, NULL);
+    glShaderSource(id, 1, const_cast<const char **>(&mem), NULL);
 
-    free(mem);
+    delete mem;
 
 
     dbgprintf("[sh%u] Loaded shader from file\n", id);
@@ -73,13 +74,14 @@ bool shader::compile(void)
     glGetShaderiv(id, GL_INFO_LOG_LENGTH, &illen);
     if (illen > 1)
     {
-        char *msg = (char *)malloc(illen + 1);
+        char *msg = new char[illen + 1];
+
         glGetShaderInfoLog(id, illen, NULL, msg);
         msg[illen] = 0; // inb4 implementation bug
 
         dbgprintf("[sh%u] Shader compile message: %s", id, msg);
 
-        free(msg);
+        delete msg;
     }
 
 
@@ -127,13 +129,14 @@ bool program::link(void)
     glGetProgramiv(id, GL_INFO_LOG_LENGTH, &illen);
     if (illen > 1)
     {
-        char *msg = (char *)malloc(illen + 1);
+        char *msg = new char[illen + 1];
+
         glGetShaderInfoLog(id, illen, NULL, msg);
         msg[illen] = 0; // inb4 implementation bug
 
         dbgprintf("[pr%u] Program link message: %s", id, msg);
 
-        free(msg);
+        delete msg;
     }
 
 
@@ -169,30 +172,39 @@ prg_uniform::prg_uniform(unsigned uni_id):
 }
 
 
-void prg_uniform::operator=(const texture *t)
+void prg_uniform::operator=(const in *o) throw(exc::invalid_type, exc::texture_not_assigned)
 {
-    for (int i = 0; i < tex_units; i++)
+    switch (o->i_type)
     {
-        if ((*tmu_mgr)[i] == t)
-        {
-            glUniform1i(id, i);
+        case in::t_texture:
+        case in::t_texture_array:
+            for (int i = 0; i < tex_units; i++)
+            {
+                if ((*tmu_mgr)[i] == o)
+                {
+                    glUniform1i(id, i);
+                    return;
+                }
+            }
+
+            throw exc::tex_na;
+
+        case in::t_vec4:
+            glUniform4fv(id, 1, static_cast<const types::rps::vec4 *>(o)->v.d);
             return;
-        }
+
+        case in::t_vec3:
+            glUniform3fv(id, 1, static_cast<const types::rps::vec3 *>(o)->v.d);
+            return;
+
+        case in::t_mat4:
+            glUniformMatrix4fv(id, 1, false, static_cast<const types::rps::mat4 *>(o)->m.d);
+            return;
+
+        case in::t_mat3:
+            glUniformMatrix3fv(id, 1, false, static_cast<const types::rps::mat3 *>(o)->m.d);
+            return;
     }
 
-    throw exc::tex_na;
-}
-
-void prg_uniform::operator=(const texture_array *t)
-{
-    for (int i = 0; i < tex_units; i++)
-    {
-        if ((*tmu_mgr)[i] == t)
-        {
-            glUniform1i(id, i);
-            return;
-        }
-    }
-
-    throw exc::tex_na;
+    throw exc::inv_type;
 }

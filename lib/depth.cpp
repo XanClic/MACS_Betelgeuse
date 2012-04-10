@@ -8,7 +8,9 @@ using namespace macs;
 
 stencildepth::stencildepth(void)
 {
-    type = root::stencildepth;
+    o_type = out::t_stencildepth;
+
+    o_name = "depth";
 
     glGenRenderbuffers(1, &id);
     glBindRenderbuffer(GL_RENDERBUFFER, id);

@@ -14,9 +14,9 @@ using namespace macs;
 texture_array::texture_array(const char *n, int c):
     elements(c)
 {
-    type = root::texture_array;
+    i_type = in::t_texture_array;
 
-    name = strdup(n);
+    i_name = strdup(n);
 
     glGenTextures(1, &id);
 
@@ -32,7 +32,7 @@ texture_array::~texture_array(void)
 {
     glDeleteTextures(1, &id);
 
-    free((void *)name);
+    free(const_cast<char *>(i_name));
 }
 
 

@@ -1,7 +1,7 @@
 CXX ?= g++
-CXXFLAGS += -g -O3 -Wall -Wextra -Wshadow -Wno-switch -std=gnu++11 -Iinclude -D_POSIX_C_SOURCE=201204 -DGL_GLEXT_PROTOTYPES -UGL_GLEXT_LEGACY
+CXXFLAGS += -g -O3 -Wall -Wextra -Wshadow -Wno-switch -std=c++11 -Iinclude -D_POSIX_C_SOURCE=201204 -DGL_GLEXT_PROTOTYPES -UGL_GLEXT_LEGACY
 LINK ?= $(CXX)
-LDFLAGS += -Llib -lmacs -lSDL -lGL
+LDFLAGS += -Llib -lmacs -lSDL -lGL -lm
 
 AR ?= ar
 RM ?= rm

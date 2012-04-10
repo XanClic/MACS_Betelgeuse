@@ -16,7 +16,7 @@ tmu::tmu(int u):
 {
 }
 
-void tmu::operator=(root *tex)
+void tmu::operator=(textures_in *tex)
 {
     if (tex == assigned)
         return;
@@ -25,9 +25,9 @@ void tmu::operator=(root *tex)
     glActiveTexture(GL_TEXTURE0 + unit);
 
 
-    if ((assigned != NULL) && ((tex == NULL) || (tex->type != assigned->type)))
+    if ((assigned != NULL) && ((tex == NULL) || (tex->i_type != assigned->i_type)))
     {
-        if (assigned->type == root::texture)
+        if (assigned->i_type == in::t_texture)
         {
             dbgprintf("[tmu%i] Disabling 2D textures.\n", unit);
             glDisable(GL_TEXTURE_2D);
@@ -44,34 +44,29 @@ void tmu::operator=(root *tex)
         dbgprintf("[tmu%i] Detaching texture.\n", unit);
     else
     {
-        switch (tex->type)
+        if (tex->i_type == in::t_texture)
         {
-            case root::texture:
-                if ((assigned == NULL) || (assigned->type != root::texture))
-                {
-                    glEnable(GL_TEXTURE_2D);
-                    dbgprintf("[tmu%i] Enabled 2D textures.\n", unit);
-                }
+            if ((assigned == NULL) || (assigned->i_type != in::t_texture))
+            {
+                glEnable(GL_TEXTURE_2D);
+                dbgprintf("[tmu%i] Enabled 2D textures.\n", unit);
+            }
 
-                dbgprintf("[tmu%i] Attaching texture “%s”.\n", unit, ((texture *)tex)->name);
+            dbgprintf("[tmu%i] Attaching texture “%s”.\n", unit, tex->i_name);
 
-                glBindTexture(GL_TEXTURE_2D, ((texture *)tex)->id);
-                break;
+            glBindTexture(GL_TEXTURE_2D, ((texture *)tex)->id);
+        }
+        else
+        {
+            if ((assigned == NULL) || (assigned->i_type != in::t_texture_array))
+            {
+                glEnable(GL_TEXTURE_3D);
+                dbgprintf("[tmu%i] Enabled 3D textures.\n", unit);
+            }
 
-            case root::texture_array:
-                if ((assigned == NULL) || (assigned->type != root::texture_array))
-                {
-                    glEnable(GL_TEXTURE_3D);
-                    dbgprintf("[tmu%i] Enabled 3D textures.\n", unit);
-                }
+            dbgprintf("[tmu%i] Attaching texture array “%s”.\n", unit, tex->i_name);
 
-                dbgprintf("[tmu%i] Attaching texture array “%s”.\n", unit, ((texture_array *)tex)->name);
-
-                glBindTexture(GL_TEXTURE_3D, ((texture_array *)tex)->id);
-                break;
-
-            default:
-                throw exc::inv_type;
+            glBindTexture(GL_TEXTURE_3D, ((texture_array *)tex)->id);
         }
     }
 
@@ -102,7 +97,7 @@ void tmu_manager::loosen(void)
     memset(definitely, 0, sizeof(bool) * units);
 }
 
-bool tmu_manager::operator&=(root *tex)
+bool tmu_manager::operator&=(textures_in *tex)
 {
     for (int i = 0; i < units; i++)
     {
@@ -116,7 +111,7 @@ bool tmu_manager::operator&=(root *tex)
     return false;
 }
 
-void tmu_manager::operator+=(root *tex)
+void tmu_manager::operator+=(textures_in *tex)
 {
     for (int i = 0; i < units; i++)
     {

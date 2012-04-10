@@ -1,4 +1,6 @@
+#include <cstdarg>
 #include <cstdint>
+#include <cstdlib>
 #include <initializer_list>
 #include <string>
 #include <vector>
@@ -12,19 +14,21 @@
 using namespace macs;
 
 
-render::render(std::initializer_list<root *> input, std::initializer_list<root *> output, const char *src):
-    de(false),
-    se(false),
-    sd(NULL),
-    dcf(render::less),
-    scf(render::not_equal),
-    sref(0xFF),
-    smask(0xFF),
-    sosf(render::keep),
-    sodf(render::keep),
-    sodp(render::replace),
-    prg(NULL)
+void render::initialize(const std::initializer_list<in *> &input, const std::initializer_list<out *> &output, const std::string &src)
 {
+    de = se = false;
+    sd = NULL;
+
+    dcf = render::less;
+    scf = render::not_equal;
+
+    sref = smask = 0xFF;
+    sosf = sodf = render::keep;
+    sodp = render::replace;
+
+    prg = NULL;
+
+
     glGenFramebuffers(1, &id);
 
     dbgprintf("[rnd%u] New render object created.\n", id);
@@ -37,24 +41,37 @@ render::render(std::initializer_list<root *> input, std::initializer_list<root *
 
     for (auto obj: input)
     {
-        switch (obj->type)
+        std::string name = obj->i_name;
+
+        switch (obj->i_type)
         {
-            case root::texture:
-            {
-                std::string name = ((texture *)obj)->name;
-                final_src += "uniform sampler2D " + name + ";\n#define " + name + " texture2D(" + name + ", tex_coord)\n";
+            case in::t_texture:
+                final_src += std::string("uniform sampler2D ") + name + ";\n#define " + name + " texture2D(" + name + ", tex_coord)\n";
                 break;
-            }
-            case root::texture_array:
+
+            case in::t_texture_array:
             {
-                std::string name = ((texture_array *)obj)->name;
                 char layers[6]; // FIXME: Overflow
-                sprintf(layers, "%i", ((texture_array *)obj)->elements);
-                final_src += "sampler3D " + name + ";\n#define " + name + "(layer) texture3D(" + name + ", vec3(tex_coord, float(layer) / " + std::string(layers) + ".0))\n";
+                sprintf(layers, "%i", static_cast<texture_array *>(obj)->elements);
+                final_src += std::string("uniform sampler3D ") + name + ";\n#define " + name + "(layer) texture3D(" + name + ", vec3(tex_coord, float(layer) / " + layers + ".0))\n";
                 break;
             }
-            default:
-                throw exc::inv_type;
+
+            case in::t_vec3:
+                final_src += std::string("uniform vec3 ") + name + ";\n";
+                break;
+
+            case in::t_vec4:
+                final_src += std::string("uniform vec4 ") + name + ";\n";
+                break;
+
+            case in::t_mat3:
+                final_src += std::string("uniform mat3 ") + name + ";\n";
+                break;
+
+            case in::t_mat4:
+                final_src += std::string("uniform mat4 ") + name + ";\n";
+                break;
         }
     }
 
@@ -63,28 +80,22 @@ render::render(std::initializer_list<root *> input, std::initializer_list<root *
 
     for (auto obj: output)
     {
-        switch (obj->type)
+        if (obj->o_type == out::t_texture)
         {
-            case root::texture:
-            {
-                dbgprintf("[rnd%u] texture “%s” is on attachment %i.\n", id, ((texture *)obj)->name, i);
+            dbgprintf("[rnd%u] texture “%s” is on attachment %i.\n", id, obj->o_name, i);
 
-                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, ((texture *)obj)->id, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, static_cast<texture *>(obj)->id, 0);
 
-                char tmp[6]; // FIXME: Overflow
-                sprintf(tmp, "%i", i++);
-                final_src += "#define " + std::string(((texture *)obj)->name) + " gl_FragData[" + std::string(tmp) + "]\n";
-                break;
-            }
-            case root::stencildepth:
-                glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT  , GL_RENDERBUFFER, ((stencildepth *)obj)->id);
-                glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, ((stencildepth *)obj)->id);
+            char tmp[6]; // FIXME: Overflow
+            sprintf(tmp, "%i", i++);
+            final_src += std::string("#define ") + obj->o_name + " gl_FragData[" + tmp + "]\n";
+        }
+        else // out::t_stencildepth
+        {
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT  , GL_RENDERBUFFER, ((stencildepth *)obj)->id);
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, ((stencildepth *)obj)->id);
 
-                final_src += "#define depth gl_FragDepth\n";
-                break;
-
-            default:
-                throw exc::inv_type;
+            final_src += "#define depth gl_FragDepth\n";
         }
     }
 
@@ -134,6 +145,22 @@ render::render(std::initializer_list<root *> input, std::initializer_list<root *
     out_objs.insert(out_objs.begin(), output);
 }
 
+render::render(std::initializer_list<in *> input, std::initializer_list<out *> output, const std::string &src, ...)
+{
+    char *str;
+    va_list args;
+
+    va_start(args, src);
+
+    vasprintf(&str, src.c_str(), args);
+
+    va_end(args);
+
+    initialize(input, output, std::string(str));
+
+    free(str);
+}
+
 render::~render(void)
 {
     delete prg;
@@ -159,12 +186,13 @@ void render::prepare(void)
 
     int i = 0;
     for (auto obj: inp_objs)
-        assigned[i++] = *internals::tmu_mgr &= obj;
+        if ((obj->i_type == in::t_texture) || (obj->i_type == in::t_texture_array))
+            assigned[i++] = *internals::tmu_mgr &= static_cast<textures_in *>(obj);
 
     i = 0;
     for (auto obj: inp_objs)
-        if (!assigned[i++])
-            *internals::tmu_mgr += obj;
+        if (!assigned[i++] && ((obj->i_type == in::t_texture) || (obj->i_type == in::t_texture_array)))
+            *internals::tmu_mgr += static_cast<textures_in *>(obj);
 
     delete assigned;
 
@@ -177,7 +205,7 @@ void render::prepare(void)
 
     for (auto obj: out_objs)
     {
-        if (obj->type == root::texture)
+        if (obj->o_type == out::t_texture)
         {
             bufs[i] = GL_COLOR_ATTACHMENT0 + i;
             i++;
@@ -218,17 +246,7 @@ void render::prepare(void)
     dbgprintf("[rnd%u] Assigning uniforms.\n", id);
 
     for (auto obj: inp_objs)
-    {
-        switch (obj->type)
-        {
-            case root::texture:
-                prg->uniform(((texture *)obj)->name) = (texture *)obj;
-                break;
-            case root::texture_array:
-                prg->uniform(((texture_array *)obj)->name) = (texture_array *)obj;
-                break;
-        }
-    }
+        prg->uniform(obj->i_name) = obj;
 }
 
 

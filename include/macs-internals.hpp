@@ -14,11 +14,8 @@
 
 #include <GL/gl.h>
 
-
-/**
- * DEBUG macro. If enabled, generate debugging code.
- */
-#define DEBUG
+#include "macs-config.hpp"
+#include "macs-exceptions.hpp"
 
 
 #ifdef DEBUG
@@ -26,27 +23,19 @@
 #define quote(x) #x
 /// Evalutes its argument before quoting it.
 #define eval(x) quote(x)
-/**
- * Debugging printf. When DEBUG is enabled (i.e., now)  generates a printf to
- * stderr, else no code is generated at all.
- *
- * @param ... Standard printf parameters (format string and further arguments).
- *
- * @return It's better if you don't care.
- */
-#define dbgprintf(...) fprintf(stderr, "libmacs:" __FILE__ ":" eval(__LINE__) ": " __VA_ARGS__)
+/// Debugging printf (no-op on !defined(DEBUG))
+#define dbgprintf(format, ...) fprintf(stderr, "libmacs:" __FILE__ ":%s():" eval(__LINE__) ": " format, __func__, ##__VA_ARGS__)
 #else
-/**
- * Debugging printf. When DEBUG is enabled, generates a printf to stderr, else
- * (i.e., now) no code is generated at all.
- */
+/// Debugging printf (no-op on !defined(DEBUG))
 #define dbgprintf(...)
 #endif
 
 
 namespace macs
 {
-    class root;
+    class in;
+    class out;
+    class textures_in;
     class texture;
     class texture_array;
 
@@ -165,17 +154,15 @@ namespace macs
 
 
                 /**
-                 * Sets a sampler uniform.
+                 * Sets this uniform.
                  *
-                 * @param tex Texture to be loaded into the sampler
+                 * @param obj Object to be loaded into this uniform.
                  *
-                 * @note The texture must be already assigned to a texture unit
+                 * @note Textures must be already assigned to a texture unit
                  *       and that unit may not be used otherwise before the
                  *       shader uses this sampler.
                  */
-                void operator=(const texture *tex);
-                /// @overload void operator=(const texture *tex)
-                void operator=(const texture_array *tex_arr);
+                void operator=(const in *obj) throw(exc::invalid_type, exc::texture_not_assigned);
 
             private:
                 /// OpenGL uniform location ID
@@ -260,14 +247,14 @@ namespace macs
                  *
                  * @param tex Texture to be assigned.
                  */
-                void operator=(root *tex);
+                void operator=(textures_in *tex);
 
                 /**
                  * Converts this TMU to the assigned texture.
                  *
                  * @return Assigned texture.
                  */
-                operator root *(void)
+                operator textures_in *(void)
                 { return assigned; }
 
                 /**
@@ -283,7 +270,7 @@ namespace macs
                 /// Hardware TMU index.
                 int unit;
                 /// Texture which has been assigned.
-                root *assigned;
+                textures_in *assigned;
         };
 
         /**
@@ -319,7 +306,7 @@ namespace macs
                  * @return True, iff a TMU has been found which has already been
                  *         assigned to it.
                  */
-                bool operator&=(root *tex);
+                bool operator&=(textures_in *tex);
 
                 /**
                  * Assigns this texture to a TMU. Finds a loosely assigned TMU
@@ -331,7 +318,7 @@ namespace macs
                  *       already been set to the given texture, so you should
                  *       use <tt>operator&=</tt> before.
                  */
-                void operator+=(root *tex);
+                void operator+=(textures_in *tex);
 
                 /**
                  * The last function in the managing cycle. It essentially
@@ -381,5 +368,8 @@ namespace macs
         void draw_quad(void);
     }
 }
+
+#include "macs.hpp"
+#include "macs-root.hpp"
 
 #endif

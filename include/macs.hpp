@@ -13,7 +13,13 @@
 #include <initializer_list>
 #include <vector>
 
+
+#include "macs-exceptions.hpp"
+#include "macs-root.hpp"
 #include "macs-internals.hpp"
+#include "macs-algebraic-types.hpp"
+#include "macs-format-types.hpp"
+#include "macs-texture-types.hpp"
 
 
 /**
@@ -64,356 +70,6 @@ namespace macs
     int max_input_textures(void);
 
 
-
-    /**
-     * Namespace for buffer formats. A buffer format specifies how many channels
-     * are used when transferring data from or to a texture and in which order
-     * they appear in the buffer.
-     */
-    namespace formats
-    {
-        /**
-         * Defines a color format.
-         *
-         * @param name Name, e.g., rgba, bgra or rgb
-         * @param channels number of channels, e.g., 4 for rgba or 3 for bgr
-         * @param ... RGBA component order
-         */
-        #define create_color_format(name, channels, ...) \
-            struct name \
-            { \
-                public: \
-                    /** Non-initializing constructor. */ \
-                    name(void) {} \
-                    /** Constructor initializing based on an initializer list. */ \
-                    name(std::initializer_list<float> init) \
-                    { int i = 0; for (float v: init) { _f[i++] = v; } } \
-                    /** Delegates indexing accesses to _f[]. */ \
-                    inline float &operator[](int index) \
-                    { return _f[index]; } \
-                    \
-                    union \
-                    { \
-                        /** Channels in RGBA convention. */ \
-                        struct { float __VA_ARGS__; }; \
-                        \
-                        /** Channels as an array */ \
-                        float _f[channels]; \
-                    }; \
-            }
-
-        /**
-         * RGBA color format. Standard 0123 color format with all four channels.
-         */
-        create_color_format(f0123, 4, r, g, b, a);
-        /**
-         * BGRA color format. 2103 color format, which is however not too rarely
-         * used.
-         */
-        create_color_format(f2103, 4, b, g, r, a);
-        /**
-         * RGB color format. 012 color format, if you don't need the fourth channel.
-         */
-        create_color_format(f012, 3, r, g, b);
-        /**
-         * BGR color format. 210 color format, if you don't need alpha but want to
-         * use BGR instead of RGB.
-         */
-        create_color_format(f210, 3, b, g, r);
-        /**
-         * R color format. 0 color format, if you need one channel only.
-         */
-        create_color_format(f0, 1, r);
-
-
-        #undef create_color_format
-    }
-
-
-
-    /**
-     * Base class for many other classes.
-     *
-     * This class is the main class for many other classes which is used when
-     * accepting several objects of different type together (e.g. in
-     * initializer lists).
-     */
-    class root
-    {
-        public:
-            /// Derived classes
-            enum types
-            {
-                /**
-                 * Basic 2D texture.
-                 *
-                 * @sa texture
-                 */
-                texture,
-
-                /**
-                 * Array of 2D textures.
-                 *
-                 * @sa texture_array
-                 */
-                texture_array,
-
-                /**
-                 * Combined stencil/depth buffer.
-                 *
-                 * @sa stencildepth
-                 */
-                stencildepth
-            };
-
-            /// Derived class type
-            types type;
-    };
-
-
-
-    class render;
-
-
-    /**
-     * Represents the basic data structure.
-     *
-     * Textures are data buffers which you may write to, read from and which are
-     * used by all MACS computations, both as input and output.
-     *
-     * Textures are two-dimensional. They are created with the width and heigt
-     * specified upon calling <tt>macs::init()</tt>. The resulting buffer has
-     * <tt>width * height</tt> elements per channel, one texture has four
-     * channels (R, G, B, A). When writing or reading data, all four channels
-     * are affected.
-     *
-     * Physically, they represent a OpenGL textures, obviously. Thus, it is
-     * preferable to use squared textures and powers of two as dimensions (i.e.,
-     * 1024 x 1024 for 1e6 elements).
-     */
-    class texture: public root
-    {
-        public:
-            /**
-             * Creates an empty texture. The texture's size will be the one
-             * specified during the <tt>macs::init()</tt> call.
-             *
-             * @param name Name which is used to denote this texture in scripts
-             */
-            texture(const char *name);
-
-            /**
-             * Destroys a texture.
-             */
-            ~texture(void);
-
-
-            /**
-             * Fills the texture with data. This function fills the texture
-             * memory with the data contained in the given buffer.
-             *
-             * @param src Buffer containing the data the texture should be
-             *            filled with. <tt>width * height</tt> formats::rgba
-             *            objects are read from it, so it must be at least
-             *            <tt>width * height * 16</tt> bytes in size.
-             */
-            void write(const formats::f0123 *src);
-            /// @overload void texture::write(formats::f0123 *src)
-            void write(const formats::f2103 *src);
-            /// @overload void texture::write(formats::f0123 *src)
-            void write(const formats::f012 *src);
-            /// @overload void texture::write(formats::f0123 *src)
-            void write(const formats::f210 *src);
-            /// @overload void texture::write(formats::f0123 *src)
-            void write(const formats::f0 *src);
-
-            /**
-             * Reads data from a texture. The texture must have been allocated
-             * and should be filled with data, either by a <tt>write()</tt> call
-             * or as a result of a render pass.
-             *
-             * @param dst Buffer the data should be written to. It must be big
-             *            enough to receive <tt>width * height</tt> elements.
-             */
-            void read(formats::f0123 *dst);
-            /// @overload void texture::read(formats::f0123 *dst)
-            void read(formats::f2103 *dst);
-            /// @overload void texture::read(formats::f0123 *dst)
-            void read(formats::f012 *dst);
-            /// @overload void texture::read(formats::f0123 *dst)
-            void read(formats::f210 *dst);
-            /// @overload void texture::read(formats::f0123 *dst)
-            void read(formats::f0 *dst);
-
-
-            /**
-             * Displays this texture's contents. This will draw a quad spanning
-             * the whole screen with the texture on it.
-             */
-            void display(void);
-
-
-            /// Texture name
-            const char *name;
-
-
-            friend class render;
-            friend class internals::tmu;
-
-        private:
-            /// OpenGL texture ID
-            GLuint id;
-    };
-
-
-    /**
-     * Represents an array of textures.
-     *
-     * If you want to use many textures at once which contain similar data, you
-     * may consider using an array of textures. This class defines such
-     * data structures.
-     *
-     * Physically, they represent 3D textures where the R coordinate is used to
-     * index a 2D texture.
-     */
-    class texture_array: public root
-    {
-        public:
-            /**
-             * Creates an empty texture array.
-             *
-             * @param name Name which is used to denote this array in scripts
-             * @param textures Texture count
-             */
-            texture_array(const char *name, int textures);
-
-            /**
-             * Destroys a texture array.
-             */
-            ~texture_array(void);
-
-
-            /**
-             * Fills the texture array with data.
-             *
-             * @param src <tt>width * height * textures</tt> formats::rgba
-             *            objects are read from this buffer.
-             *
-             * @sa void texture::write(formats::f0123 *src)
-             */
-            void write(const formats::f0123 *src);
-            /// @overload void texture_array::write(formats::f0123 *src)
-            void write(const formats::f2103 *src);
-            /// @overload void texture_array::write(formats::f0123 *src)
-            void write(const formats::f012 *src);
-            /// @overload void texture_array::write(formats::f0123 *src)
-            void write(const formats::f210 *src);
-            /// @overload void texture_array::write(formats::f0123 *src)
-            void write(const formats::f0 *src);
-
-            /**
-             * Reads data from a texture array.
-             *
-             * @param dst <tt>width * height * textures</tt> elements are
-             *            written to this buffer.
-             *
-             * @sa void texture::read(formats::f0123 *dst)
-             */
-            void read(formats::f0123 *dst);
-            /// @overload void texture_array::read(formats::f0123 *dst)
-            void read(formats::f2103 *dst);
-            /// @overload void texture_array::read(formats::f0123 *dst)
-            void read(formats::f012 *dst);
-            /// @overload void texture_array::read(formats::f0123 *dst)
-            void read(formats::f210 *dst);
-            /// @overload void texture_array::read(formats::f0123 *dst)
-            void read(formats::f0 *dst);
-
-
-            /// Texture array name
-            const char *name;
-
-
-            friend class render;
-            friend class internals::tmu;
-
-        private:
-            /// Subtexture count
-            int elements;
-
-            /// OpenGL texture ID
-            GLuint id;
-    };
-
-
-    /**
-     * Represents a combined depth/stencil buffer attachment.
-     *
-     * A render pass may include a stencil. This is basically an additional
-     * one-channel write-only texture which is however not accessible in the
-     * pass script and which is accessed bitwise. When a fragment passes the
-     * stencil (and depth) test, the buffer may be modified. Else, all buffers
-     * remain unaltered.
-     *
-     * The stencil test compares a reference value with the value already
-     * present in the stencil buffer. An arbitrary mask is applied to every
-     * stencil operation, including these comparisons.
-     *
-     * Furthermore, a render pass may include a depth buffer. This is as well
-     * basically an additional one-chennel write-only texture which one refers
-     * to using the "depth" identifier in pass scripts. The written depth value
-     * is then compared using one of several functions to the value it already
-     * contains. If the comparison is false, the output textures will not be
-     * altered.
-     *
-     * The stencil test is done before the depth test.
-     *
-     * Note that some functions one would normally expect to be contained in
-     * this class may actually be part of the render pass class. Currently this
-     * affects the functions used to clear the buffers.
-     *
-     * @sa pass::clear_stencil(uint8_t value)
-     * @sa pass::clear_depth(formats::f0 value)
-     */
-    class stencildepth: public root
-    {
-        public:
-            /**
-             * Creates a stencil/depth buffer.
-             */
-            stencildepth(void);
-            /**
-             * Frees a stencil/depth buffer.
-             */
-            ~stencildepth(void);
-
-            /**
-             * Creates a texture from the depth part of this buffer. This
-             * function transforms the depth buffer into a one-channel texture.
-             * Note that it requires this buffer to be bound to an active render
-             * pass object.
-             *
-             * @param name The name of the texture to be created.
-             *
-             * @return The one-channel texture created.
-             *
-             * @note This function is relatively CPU-heavy, because it converts
-             *       the combined stencil/depth buffer data to sole depth FP
-             *       values before transferring them to a new texture. Thus it
-             *       should be used for debugging purposes only.
-             */
-            class texture *depth_to_texture(const char *name);
-
-
-            friend class render;
-
-        private:
-            /// OpenGL buffer ID
-            GLuint id;
-    };
-
-
-
     /**
      * Represents a render pass.
      *
@@ -432,7 +88,11 @@ namespace macs
              * then be compiled and the render pass object (i.e., the FBO)
              * initialized.
              *
-             * @param 
+             * @param input Input object list.
+             * @param output Output object list.
+             * @param src Render pass script source code. This string will be
+             *            intepreted as a printf format string.
+             * @param ... Formatting arguments.
              *
              * @note Right now, there is no translation from RPS to GLSL, it
              *       will simply be piped through (with several lines added
@@ -450,9 +110,10 @@ namespace macs
              * @sa int max_input_textures(void)
              */
             render(
-                std::initializer_list<root *> input,
-                std::initializer_list<root *> output,
-                const char *src
+                std::initializer_list<in *> input,
+                std::initializer_list<out *> output,
+                const std::string &src,
+                ...
             );
 
             /**
@@ -610,6 +271,10 @@ namespace macs
 
 
         private:
+            /// Common initialization routine
+            void initialize(const std::initializer_list<in *> &input, const std::initializer_list<out *> &output, const std::string &src);
+
+
             /// OpenGL FBO ID
             GLuint id;
 
@@ -636,9 +301,9 @@ namespace macs
             stencil_op sodp;
 
             /// Input objects
-            std::vector<root *> inp_objs;
+            std::vector<in *> inp_objs;
             /// Output objects
-            std::vector<root *> out_objs;
+            std::vector<out *> out_objs;
 
             /// Generated program
             internals::program *prg;
@@ -657,88 +322,6 @@ namespace macs
      *                   double and to false for single buffering.
      */
     void render_to_screen(bool backbuffer);
-
-
-
-    /**
-     * MACS exceptions.
-     */
-    namespace exc
-    {
-        /**
-         * Invalid type exception. Thrown if an invalid type was given to
-         * a function (e.g., a stencil/depth buffer as input to a render pass
-         * object).
-         */
-        static class invalid_type: std::exception
-        {
-            public:
-                /// Returns an error description.
-                virtual const char *what(void) const throw()
-                { return "Invalid type given."; }
-        }
-        /// Invalid type exception instance
-        inv_type;
-
-        /**
-         * Invalid execution order exception. Thrown if certain methods have
-         * been called in the wrong order on an object (e.g., if you attach
-         * objects to a render pass object after it has been compiled).
-         */
-        static class invalid_execution_order: std::exception
-        {
-            public:
-                /// Returns an error description.
-                virtual const char *what(void) const throw()
-                { return "Methods executed in invalid order."; }
-        }
-        /// Invalid execution order exception instance
-        inv_exec_order;
-
-        /**
-         * Hardware ressource limit exceeded exception. Thrown if the logical
-         * objects cannot be distributed among the available physical hardware
-         * ressources (e.g., more input textures than texture units available).
-         */
-        static class ressource_limit_exceeded: std::exception
-        {
-            public:
-                /// Returns an error description.
-                virtual const char *what(void) const throw()
-                { return "Physical ressource limit has been exceeded."; }
-        }
-        /// Hardware ressource limit exceeded exception instance
-        rsrc_lim_exc;
-
-        /**
-         * Texture not assigned exception. Thrown if a texture should be used as
-         * input to a computation, but has not yet been assigned to a texture
-         * unit. This should never occur, however.
-         */
-        static class texture_not_assigned: std::exception
-        {
-            public:
-                /// Returns an error description.
-                virtual const char *what(void) const throw()
-                { return "Requested texture has not been assigned to a TMU."; }
-        }
-        /// Texture not assigned exception instance
-        tex_na;
-
-        /**
-         * Shader compilation/linking failed exception. Thrown if linking or
-         * compiling a shader (i.e., a render pass script) failed.
-         */
-        static class shader_compilation_linking_failed: std::exception
-        {
-            public:
-                /// Returns an error description.
-                virtual const char *what(void) const throw()
-                { return "Shader compilation or linking failed."; }
-        }
-        /// Shader compilation/linking failed exception instance
-        shader_fail;
-    }
 }
 
 #endif
