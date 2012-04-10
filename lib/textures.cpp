@@ -20,8 +20,11 @@ texture::texture(const char *n)
     glGenTextures(1, &id);
 
     (*internals::tmu_mgr)[0] = this;
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F_ARB, internals::width, internals::height, 0, GL_RGBA, GL_FLOAT, NULL);
 }
 
 texture::~texture(void)
@@ -32,25 +35,11 @@ texture::~texture(void)
 }
 
 
-void texture::allocate(void)
-{
-    if (allocated)
-        return;
-
-
-    (*internals::tmu_mgr)[0] = this;
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F_ARB, internals::width, internals::height, 0, GL_RGBA, GL_FLOAT, NULL);
-
-    allocated = true;
-}
-
-
 #define texture_write(format, gl_format) \
     void texture::write(const formats::format *src) \
     { \
         (*internals::tmu_mgr)[0] = this; \
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F_ARB, internals::width, internals::height, 0, gl_format, GL_FLOAT, src); \
-        allocated = true; \
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, internals::width, internals::height, gl_format, GL_FLOAT, src); \
     }
 
 texture_write(f0123, GL_RGBA)
@@ -63,8 +52,6 @@ texture_write(f0,    GL_RED )
 #define texture_read(format, gl_format) \
     void texture::read(formats::format *dst) \
     { \
-        if (!allocated) \
-            return; \
         (*internals::tmu_mgr)[0] = this; \
         glGetTexImage(GL_TEXTURE_2D, 0, gl_format, GL_FLOAT, dst); \
     }

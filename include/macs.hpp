@@ -195,14 +195,10 @@ namespace macs
     {
         public:
             /**
-             * Creates an empty texture. Note that its content as well as its
-             * dimensions will not be defined, until you write data to it or
-             * use the allocate() method. The texture's size will be the one
+             * Creates an empty texture. The texture's size will be the one
              * specified during the <tt>macs::init()</tt> call.
              *
              * @param name Name which is used to denote this texture in scripts
-             *
-             * @sa void texture::allocate(void)
              */
             texture(const char *name);
 
@@ -213,31 +209,13 @@ namespace macs
 
 
             /**
-             * Actually creates the texture. This function physically allocates
-             * the texture memory and also sets its dimensions, leaving the
-             * content undefined. This function is supposed to be called when
-             * creating a texture which is used for writing to. If the texture
-             * already has been allocated (via <tt>allocate()</tt> or
-             * <tt>write()</tt>), this is a no-op.
-             *
-             * @sa void texture::write(formats::f0123 *src)
-             */
-            void allocate(void);
-
-            /**
-             * Fills the texture with data. This function physically allocates
-             * the texture memory and set its dimensions, if it has not yet been
-             * allocated. It is then filled with the data contained in the given
-             * buffer. This method is meant to be used when the texture is
-             * actually supposed to be used as a source. If you just want an
-             * output texture, use the allocate() method.
+             * Fills the texture with data. This function fills the texture
+             * memory with the data contained in the given buffer.
              *
              * @param src Buffer containing the data the texture should be
              *            filled with. <tt>width * height</tt> formats::rgba
              *            objects are read from it, so it must be at least
              *            <tt>width * height * 16</tt> bytes in size.
-             *
-             * @sa void texture::allocate(void)
              */
             void write(const formats::f0123 *src);
             /// @overload void texture::write(formats::f0123 *src)
@@ -251,8 +229,8 @@ namespace macs
 
             /**
              * Reads data from a texture. The texture must have been allocated
-             * and should be filled with data, either by a write() call or as a
-             * result of a render pass.
+             * and should be filled with data, either by a <tt>write()</tt> call
+             * or as a result of a render pass.
              *
              * @param dst Buffer the data should be written to. It must be big
              *            enough to receive <tt>width * height</tt> elements.
@@ -285,9 +263,6 @@ namespace macs
         private:
             /// OpenGL texture ID
             GLuint id;
-
-            /// True iff the texture's dimensions have been set.
-            bool allocated;
     };
 
 
@@ -305,9 +280,7 @@ namespace macs
     {
         public:
             /**
-             * Creates an empty texture array. As with normal textures, its
-             * contents and dimensions are undefined until allocated or
-             * written to.
+             * Creates an empty texture array.
              *
              * @param name Name which is used to denote this array in scripts
              * @param textures Texture count
@@ -319,13 +292,6 @@ namespace macs
              */
             ~texture_array(void);
 
-
-            /**
-             * Allocates the texture array.
-             *
-             * @sa void texture::allocate(void)
-             */
-            void allocate(void);
 
             /**
              * Fills the texture array with data.
@@ -377,9 +343,6 @@ namespace macs
 
             /// OpenGL texture ID
             GLuint id;
-
-            /// True iff the texture's dimensions have been set.
-            bool allocated;
     };
 
 
@@ -464,96 +427,12 @@ namespace macs
     {
         public:
             /**
-             * Creates a new render pass object.
-             */
-            render(void);
-
-            /**
-             * Frees a render pass object.
-             */
-            ~render(void);
-
-
-            /**
-             * Attaches several objects (i.e., textures) as input to this render
-             * pass object. The given objects will be attached and may
-             * subsequently be read from in the render pass script.
+             * Creates a new render pass object, attaching the given objects
+             * (e.g., textures) to it. The given render pass script (RPS) will
+             * then be compiled and the render pass object (i.e., the FBO)
+             * initialized.
              *
-             * @param objs List of objects to be attached as input.
-             *
-             * @note Note that no object may be attached both as input and
-             *       output.
-             */
-            void input(std::initializer_list<root *> objs);
-            /// @overload void render::input(std::initializer_list<root *> objs)
-            void input(root *obj)
-            { this->input({ obj }); }
-
-            /**
-             * Alias for <tt>input()</tt> and provided for convenience only.
-             * @sa void render::input(std::initializer_list<root *> objs)
-             */
-            void operator<<(std::initializer_list<root *> objs)
-            { this->input(objs); }
-            /// @overload void render::operator<<(std::initializer_list<root *> objs)
-            void operator<<(root *obj)
-            { this->input(obj); }
-
-
-            /**
-             * Attaches several textures as output to this render pass object.
-             * The given textures will be attached and may subsequently be
-             * written to in the render pass script.
-             *
-             * @param objs List of textures to be attached as input.
-             *
-             * @note Note that no object may be attached both as input and
-             *       output.
-             *
-             * @note Note further that only plain 2D textures and stencildepth
-             *       buffers (only one at a time) may be used as output from
-             *       render passes.
-             */
-            void output(std::initializer_list<root *> objs);
-            /// @overload void render::output(std::initializer_list<root *> objs)
-            void output(root *obj)
-            { this->output({ obj }); }
-
-            /**
-             * Alias for <tt>output()</tt> and provided for convenience only.
-             * @sa void render::output(std::initializer_list<root *> objs)
-             */
-            void operator>>(std::initializer_list<root *> objs)
-            { this->output(objs); }
-            /// @overload void render::operator>>(std::initializer_list<root *> objs)
-            void operator>>(root *obj)
-            { this->output(obj); }
-
-
-            /**
-             * Binds this render object for usage. Before doing anything with a
-             * render pass object, you have to bind it. Only one render pass
-             * object may be bound at a time, and
-             * <tt>macs::render_to_screen()</tt> destroys all those bindings.
-             *
-             * @sa void render_to_screen(void)
-             */
-            void bind(void);
-
-
-            /**
-             * Specifies the render pass script (RPS). This specifies the
-             * computation to be carried out upon rendering. This script will
-             * not be translated/compiled until execution, thus every syntax
-             * error (etc.) will not be detected until then.
-             * Furthermore, when calling this function, every input and
-             * output object will be attached to this frame buffer. Thus,
-             * you have to call this function after specifying all the
-             * inputs and outputs.
-             *
-             * @param src Render pass script source code
-             *
-             * @return True iff successful
+             * @param 
              *
              * @note Right now, there is no translation from RPS to GLSL, it
              *       will simply be piped through (with several lines added
@@ -570,7 +449,16 @@ namespace macs
              *
              * @sa int max_input_textures(void)
              */
-            bool compile(const char *src);
+            render(
+                std::initializer_list<root *> input,
+                std::initializer_list<root *> output,
+                const char *src
+            );
+
+            /**
+             * Frees a render pass object.
+             */
+            ~render(void);
 
 
             /**
@@ -762,8 +650,13 @@ namespace macs
      * screen, e.g. via the <tt>texture::display()</tt> function. This function
      * enables onscreen rendering, after offscreen computations have been
      * carried out.
+     *
+     * @param backbuffer Must be true in order to render to the back buffer,
+     *                   else this function will enable rendering to the front
+     *                   buffer. You should set this parameter to true for
+     *                   double and to false for single buffering.
      */
-    void render_to_screen(void);
+    void render_to_screen(bool backbuffer);
 
 
 
@@ -831,6 +724,20 @@ namespace macs
         }
         /// Texture not assigned exception instance
         tex_na;
+
+        /**
+         * Shader compilation/linking failed exception. Thrown if linking or
+         * compiling a shader (i.e., a render pass script) failed.
+         */
+        static class shader_compilation_linking_failed: std::exception
+        {
+            public:
+                /// Returns an error description.
+                virtual const char *what(void) const throw()
+                { return "Shader compilation or linking failed."; }
+        }
+        /// Shader compilation/linking failed exception instance
+        shader_fail;
     }
 }
 

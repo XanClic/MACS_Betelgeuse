@@ -18,20 +18,14 @@ int main(void)
 
 
     macs::texture *tex = new macs::texture("tex");
-    tex->allocate();
 
-
-    macs::render *rnd = new macs::render;
-    *rnd >> tex;
-
-    rnd->bind();
-    rnd->compile("void main(void) { tex = vec4(tex_coord, 0., 1.); }");
+    macs::render *rnd = new macs::render({ }, { tex }, "void main(void) { tex = vec4(tex_coord, 0., 1.); }");
 
     rnd->prepare();
     rnd->execute();
 
 
-    macs::render_to_screen();
+    macs::render_to_screen(true);
 
     delete rnd;
 

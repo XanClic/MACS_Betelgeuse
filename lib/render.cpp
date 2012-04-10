@@ -12,7 +12,9 @@
 using namespace macs;
 
 
-render::render(void):
+render::render(std::initializer_list<root *> input, std::initializer_list<root *> output, const char *src):
+    de(false),
+    se(false),
     sd(NULL),
     dcf(render::less),
     scf(render::not_equal),
@@ -26,108 +28,21 @@ render::render(void):
     glGenFramebuffers(1, &id);
 
     dbgprintf("[rnd%u] New render object created.\n", id);
-}
-
-render::~render(void)
-{
-    delete prg;
-
-    dbgprintf("[rnd%u] Deleting render object.\n", id);
-
-    glDeleteFramebuffers(1, &id);
-}
-
-
-void render::input(std::initializer_list<root *> objs)
-{
-    if (prg != NULL)
-        throw exc::inv_exec_order;
-
-
-    inp_objs.insert(inp_objs.begin(), objs);
-
-
-#ifdef DEBUG
-    dbgprintf("[rnd%u] Attaching input objects:\n", id);
-    for (auto obj: objs)
-    {
-        switch (obj->type)
-        {
-            case root::texture:
-                dbgprintf("[rnd%u] texture “%s”\n", id, ((texture *)obj)->name);
-                break;
-            case root::texture_array:
-                dbgprintf("[rnd%u] texture array “%s”\n", id, ((texture_array *)obj)->name);
-                break;
-            case root::stencildepth:
-                dbgprintf("[rnd%u] stencil/depth buffer\n", id);
-                break;
-            default:
-                dbgprintf("[rnd%u] Unknown object type\n", id);
-                break;
-        }
-    }
-#endif
-}
-
-
-void render::output(std::initializer_list<root *> objs)
-{
-    if (prg != NULL)
-        throw exc::inv_exec_order;
-
-
-    out_objs.insert(out_objs.begin(), objs);
-
-
-#ifdef DEBUG
-    dbgprintf("[rnd%u] Attaching output objects:\n", id);
-    for (auto obj: objs)
-    {
-        switch (obj->type)
-        {
-            case root::texture:
-                dbgprintf("[rnd%u] texture “%s”\n", id, ((texture *)obj)->name);
-                break;
-            case root::texture_array:
-                dbgprintf("[rnd%u] texture array “%s”\n", id, ((texture_array *)obj)->name);
-                break;
-            case root::stencildepth:
-                dbgprintf("[rnd%u] stencil/depth buffer\n", id);
-                break;
-            default:
-                dbgprintf("[rnd%u] Unknown object type\n", id);
-                break;
-        }
-    }
-#endif
-}
-
-
-void render::bind(void)
-{
-    dbgprintf("[rnd%u] Bound.\n", id);
 
     glBindFramebuffer(GL_FRAMEBUFFER, id);
-}
-
-
-bool render::compile(const char *src)
-{
-    dbgprintf("[rnd%u] Compiling.\n", id);
 
 
     std::string final_src = "varying vec2 tex_coord;\n";
 
 
-    for (auto obj: inp_objs)
+    for (auto obj: input)
     {
         switch (obj->type)
         {
             case root::texture:
             {
                 std::string name = ((texture *)obj)->name;
-                final_src += "sampler2D " + name + ";\n#define " + name + " texture2D(" + name + ", tex_coord)\n";
+                final_src += "uniform sampler2D " + name + ";\n#define " + name + " texture2D(" + name + ", tex_coord)\n";
                 break;
             }
             case root::texture_array:
@@ -146,7 +61,7 @@ bool render::compile(const char *src)
 
     int i = 0;
 
-    for (auto obj: out_objs)
+    for (auto obj: output)
     {
         switch (obj->type)
         {
@@ -195,7 +110,7 @@ bool render::compile(const char *src)
     {
         delete sh;
 
-        return false;
+        throw exc::shader_fail;
     }
 
 
@@ -209,21 +124,32 @@ bool render::compile(const char *src)
         delete prg;
         prg = NULL;
 
-        return false;
+        throw exc::shader_fail;
     }
 
     delete sh;
 
 
-    dbgprintf("[rnd%u] Success.\n", id);
+    inp_objs.insert(inp_objs.begin(), input);
+    out_objs.insert(out_objs.begin(), output);
+}
 
-    return true;
+render::~render(void)
+{
+    delete prg;
+
+    dbgprintf("[rnd%u] Deleting render object.\n", id);
+
+    glDeleteFramebuffers(1, &id);
 }
 
 
 void render::prepare(void)
 {
     dbgprintf("[rnd%u] Preparing.\n", id);
+
+
+    glBindFramebuffer(GL_FRAMEBUFFER, id);
 
 
     bool *assigned = new bool[inp_objs.size()];
@@ -266,20 +192,22 @@ void render::prepare(void)
 
 
 
-    if (de)
-        glEnable(GL_DEPTH_TEST);
-    else
+    if (!de)
         glDisable(GL_DEPTH_TEST);
-
-    if (se)
-        glEnable(GL_STENCIL_TEST);
     else
+    {
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(dcf);
+    }
+
+    if (!se)
         glDisable(GL_STENCIL_TEST);
-
-
-    glDepthFunc(dcf);
-    glStencilFunc(scf, sref, smask);
-    glStencilOp(sosf, sodf, sodp);
+    else
+    {
+        glEnable(GL_STENCIL_TEST);
+        glStencilFunc(scf, sref, smask);
+        glStencilOp(sosf, sodf, sodp);
+    }
 
 
     dbgprintf("[rnd%u] Putting shader into use.\n", id);
@@ -358,9 +286,9 @@ void render::stencil_operation(render::stencil_op sf, render::stencil_op df, ren
 
 
 
-void macs::render_to_screen(void)
+void macs::render_to_screen(bool backbuffer)
 {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    glDrawBuffer(GL_BACK);
+    glDrawBuffer(backbuffer ? GL_BACK : GL_FRONT);
 }
