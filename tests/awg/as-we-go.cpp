@@ -25,56 +25,47 @@ int main(void)
         return 1;
 
 
-    macs::texture *ray_stt = new macs::texture("ray_starting_points");
-    macs::texture *ray_dir = new macs::texture("ray_directions");
+    named<vec4> cam_pos("cam_pos", vec4(0.f, 0.f,  0.f, 1.f));
+    named<vec3> cam_fwd("cam_fwd", vec3(0.f, 0.f, -1.f));
+    named<vec3> cam_rgt("cam_rgt", vec3(1.f, 0.f,  0.f));
+    named<vec3> cam_up ("cam_up" , vec3(0.f, 1.f,  0.f));
 
 
-    vec4 cam_pos(0.f, 0.f,  0.f, 1.f);
-    vec3 cam_fwd(0.f, 0.f, -1.f);
-    vec3 cam_rgt(1.f, 0.f,  0.f);
-    vec3 cam_up (0.f, 1.f,  0.f);
-
-    float yfov = tanf(45.f * static_cast<float>(M_PI) / 180.f);
-    float aspect = 1.f;
+    named<float> yfov("yfov", tanf(45.f * static_cast<float>(M_PI) / 180.f));
+    named<float> xfov("xfov", *yfov * 1.f);
 
 
-    macs::render *rnd = new macs::render(
-            { },
-            { ray_stt, ray_dir },
-            "#define cam_pos " + static_cast<std::string>(cam_pos) + "\n"
-            "#define cam_fwd " + static_cast<std::string>(cam_fwd) + "\n"
-            "#define cam_rgt " + static_cast<std::string>(cam_rgt) + "\n"
-            "#define cam_up  " + static_cast<std::string>(cam_up ) + "\n"
-            "void main(void)\n"
-            "{\n"
-            "    ray_starting_points = cam_pos;\n"
-            "    ray_directions = vec4(\n"
-            "        normalize(\n"
-            "            (tex_coord.x * 2. - 1.) * %f * cam_rgt +\n"
-            "            (tex_coord.y * 2. - 1.) * %f * cam_up  +\n"
-            "            cam_fwd\n"
-            "        ),\n"
-            "        1.\n"
-            "    );\n"
-            "}",
-            yfov * aspect, yfov
+    macs::texture ray_stt("ray_starting_points");
+    macs::texture ray_dir("ray_directions");
+
+
+    macs::render rnd_view(
+        { &cam_pos, &cam_fwd, &cam_rgt, &cam_up, &yfov, &xfov },
+        { &ray_stt, &ray_dir },
+        "", "",
+        "cam_pos",
+        "vec4(\n"
+        "    normalize(\n"
+        "        (tex_coord.x * 2. - 1.) * xfov * cam_rgt +\n"
+        "        (tex_coord.y * 2. - 1.) * yfov * cam_up  +\n"
+        "        cam_fwd\n"
+        "    ),\n"
+        "    1.\n"
+        ")"
     );
-
-    rnd->prepare();
-    rnd->execute();
-
-
-    macs::render_to_screen(true);
-
-    delete rnd;
 
 
     bool quit = false;
 
     while (!quit)
     {
-        glClear(GL_COLOR_BUFFER_BIT);
-        ray_dir->display();
+        rnd_view.prepare();
+        rnd_view.execute();
+
+        macs::render_to_screen(true);
+
+        ray_dir.display();
+
         SDL_GL_SwapBuffers();
 
 

@@ -16,7 +16,7 @@ tmu::tmu(int u):
 {
 }
 
-void tmu::operator=(textures_in *tex)
+void tmu::operator=(const textures_in *tex)
 {
     if (tex == assigned)
         return;
@@ -32,7 +32,7 @@ void tmu::operator=(textures_in *tex)
             dbgprintf("[tmu%i] Disabling 2D textures.\n", unit);
             glDisable(GL_TEXTURE_2D);
         }
-        else
+        else // in::t_texture_array
         {
             dbgprintf("[tmu%i] Disabling 3D textures.\n", unit);
             glDisable(GL_TEXTURE_3D);
@@ -54,7 +54,7 @@ void tmu::operator=(textures_in *tex)
 
             dbgprintf("[tmu%i] Attaching texture “%s”.\n", unit, tex->i_name);
 
-            glBindTexture(GL_TEXTURE_2D, ((texture *)tex)->id);
+            glBindTexture(GL_TEXTURE_2D, static_cast<const texture *>(tex)->id);
         }
         else
         {
@@ -66,7 +66,7 @@ void tmu::operator=(textures_in *tex)
 
             dbgprintf("[tmu%i] Attaching texture array “%s”.\n", unit, tex->i_name);
 
-            glBindTexture(GL_TEXTURE_3D, ((texture_array *)tex)->id);
+            glBindTexture(GL_TEXTURE_3D, static_cast<const texture_array *>(tex)->id);
         }
     }
 
@@ -97,7 +97,7 @@ void tmu_manager::loosen(void)
     memset(definitely, 0, sizeof(bool) * units);
 }
 
-bool tmu_manager::operator&=(textures_in *tex)
+bool tmu_manager::operator&=(const textures_in *tex)
 {
     for (int i = 0; i < units; i++)
     {
@@ -111,7 +111,7 @@ bool tmu_manager::operator&=(textures_in *tex)
     return false;
 }
 
-void tmu_manager::operator+=(textures_in *tex)
+void tmu_manager::operator+=(const textures_in *tex)
 {
     for (int i = 0; i < units; i++)
     {

@@ -12,12 +12,12 @@
 #include "macs-internals.hpp"
 
 using namespace macs;
+using namespace macs::types;
 
 
-void render::initialize(const std::initializer_list<in *> &input, const std::initializer_list<out *> &output, const std::string &src)
+render::render(std::initializer_list<const in *> input, std::initializer_list<const out *> output, const char *global_src, const char *shared_src, ...)
 {
     de = se = false;
-    sd = NULL;
 
     dcf = render::less;
     scf = render::not_equal;
@@ -52,17 +52,17 @@ void render::initialize(const std::initializer_list<in *> &input, const std::ini
             case in::t_texture_array:
             {
                 char layers[6]; // FIXME: Overflow
-                sprintf(layers, "%i", static_cast<texture_array *>(obj)->elements);
+                sprintf(layers, "%i", static_cast<const texture_array *>(obj)->elements);
                 final_src += std::string("uniform sampler3D ") + name + ";\n#define " + name + "(layer) texture3D(" + name + ", vec3(tex_coord, float(layer) / " + layers + ".0))\n";
                 break;
             }
 
             case in::t_vec3:
-                final_src += std::string("uniform vec3 ") + name + ";\n";
+                final_src += std::string("#define ") + name + " " + static_cast<std::string>(**static_cast<const named<vec3> *>(obj)) + "\n";
                 break;
 
             case in::t_vec4:
-                final_src += std::string("uniform vec4 ") + name + ";\n";
+                final_src += std::string("#define ") + name + " " + static_cast<std::string>(**static_cast<const named<vec4> *>(obj)) + "\n";
                 break;
 
             case in::t_mat3:
@@ -72,6 +72,17 @@ void render::initialize(const std::initializer_list<in *> &input, const std::ini
             case in::t_mat4:
                 final_src += std::string("uniform mat4 ") + name + ";\n";
                 break;
+
+            case in::t_float:
+            {
+                char float_val[16]; // FIXME
+                sprintf(float_val, "%f", **static_cast<const named<float> *>(obj));
+                final_src += std::string("#define ") + name + " " + float_val + "\n";
+                break;
+            }
+
+            default: // This should never happen
+                throw exc::inv_type;
         }
     }
 
@@ -80,22 +91,29 @@ void render::initialize(const std::initializer_list<in *> &input, const std::ini
 
     for (auto obj: output)
     {
-        if (obj->o_type == out::t_texture)
+        switch (obj->o_type)
         {
-            dbgprintf("[rnd%u] texture “%s” is on attachment %i.\n", id, obj->o_name, i);
+            case out::t_texture:
+                dbgprintf("[rnd%u] texture “%s” is on attachment %i.\n", id, obj->o_name, i);
 
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, static_cast<texture *>(obj)->id, 0);
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, static_cast<const texture *>(obj)->id, 0);
 
-            char tmp[6]; // FIXME: Overflow
-            sprintf(tmp, "%i", i++);
-            final_src += std::string("#define ") + obj->o_name + " gl_FragData[" + tmp + "]\n";
-        }
-        else // out::t_stencildepth
-        {
-            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT  , GL_RENDERBUFFER, ((stencildepth *)obj)->id);
-            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, ((stencildepth *)obj)->id);
+                char tmp[6]; // FIXME: Overflow
+                sprintf(tmp, "%i", i++);
+                final_src += std::string("#define ") + obj->o_name + " gl_FragData[" + tmp + "]\n";
 
-            final_src += "#define depth gl_FragDepth\n";
+                break;
+
+            case out::t_stencildepth:
+                glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT  , GL_RENDERBUFFER, static_cast<const stencildepth *>(obj)->id);
+                glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, static_cast<const stencildepth *>(obj)->id);
+
+                final_src += "#define depth gl_FragDepth\n";
+
+                break;
+
+            default: // This should never happen
+                throw exc::inv_type;
         }
     }
 
@@ -105,7 +123,19 @@ void render::initialize(const std::initializer_list<in *> &input, const std::ini
         throw exc::rsrc_lim_exc;
 
 
-    final_src += src;
+    final_src += std::string(global_src) + "\nvoid main(void)\n{\n" + shared_src + "\n";
+
+
+    va_list va;
+    va_start(va, shared_src);
+
+    for (auto obj: output)
+        final_src += std::string(obj->o_name) + " = " + va_arg(va, const char *) + ";\n";
+
+    va_end(va);
+
+
+    final_src += "}\n";
 
 
     dbgprintf("[rnd%u] Final source:\n%s\n", id, final_src.c_str());
@@ -145,22 +175,6 @@ void render::initialize(const std::initializer_list<in *> &input, const std::ini
     out_objs.insert(out_objs.begin(), output);
 }
 
-render::render(std::initializer_list<in *> input, std::initializer_list<out *> output, const std::string &src, ...)
-{
-    char *str;
-    va_list args;
-
-    va_start(args, src);
-
-    vasprintf(&str, src.c_str(), args);
-
-    va_end(args);
-
-    initialize(input, output, std::string(str));
-
-    free(str);
-}
-
 render::~render(void)
 {
     delete prg;
@@ -187,12 +201,12 @@ void render::prepare(void)
     int i = 0;
     for (auto obj: inp_objs)
         if ((obj->i_type == in::t_texture) || (obj->i_type == in::t_texture_array))
-            assigned[i++] = *internals::tmu_mgr &= static_cast<textures_in *>(obj);
+            assigned[i++] = *internals::tmu_mgr &= static_cast<const textures_in *>(obj);
 
     i = 0;
     for (auto obj: inp_objs)
         if (!assigned[i++] && ((obj->i_type == in::t_texture) || (obj->i_type == in::t_texture_array)))
-            *internals::tmu_mgr += static_cast<textures_in *>(obj);
+            *internals::tmu_mgr += static_cast<const textures_in *>(obj);
 
     delete assigned;
 
@@ -246,7 +260,8 @@ void render::prepare(void)
     dbgprintf("[rnd%u] Assigning uniforms.\n", id);
 
     for (auto obj: inp_objs)
-        prg->uniform(obj->i_name) = obj;
+        if ((obj->i_type == in::t_texture) || (obj->i_type == in::t_texture_array))
+            prg->uniform(obj->i_name) = obj;
 }
 
 

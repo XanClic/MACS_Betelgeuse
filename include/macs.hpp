@@ -90,9 +90,11 @@ namespace macs
              *
              * @param input Input object list.
              * @param output Output object list.
-             * @param src Render pass script source code. This string will be
-             *            intepreted as a printf format string.
-             * @param ... Formatting arguments.
+             * @param global_src Global render pass script source code (e.g.
+             *                   functions).
+             * @param shared_src Shared local RPS source code.
+             * @param ... Values the output objects shall be set to
+             *            (const char *).
              *
              * @note Right now, there is no translation from RPS to GLSL, it
              *       will simply be piped through (with several lines added
@@ -110,9 +112,10 @@ namespace macs
              * @sa int max_input_textures(void)
              */
             render(
-                std::initializer_list<in *> input,
-                std::initializer_list<out *> output,
-                const std::string &src,
+                std::initializer_list<const in *> input,
+                std::initializer_list<const out *> output,
+                const char *global_src,
+                const char *shared_src,
                 ...
             );
 
@@ -271,10 +274,6 @@ namespace macs
 
 
         private:
-            /// Common initialization routine
-            void initialize(const std::initializer_list<in *> &input, const std::initializer_list<out *> &output, const std::string &src);
-
-
             /// OpenGL FBO ID
             GLuint id;
 
@@ -283,8 +282,6 @@ namespace macs
             /// Stencil testing enabled
             bool se;
 
-            /// Attached stencil/depth buffer
-            stencildepth *sd;
             /// Depth comparison function
             comparison dcf;
             /// Stencil comparison function
@@ -301,9 +298,9 @@ namespace macs
             stencil_op sodp;
 
             /// Input objects
-            std::vector<in *> inp_objs;
+            std::vector<const in *> inp_objs;
             /// Output objects
-            std::vector<out *> out_objs;
+            std::vector<const out *> out_objs;
 
             /// Generated program
             internals::program *prg;

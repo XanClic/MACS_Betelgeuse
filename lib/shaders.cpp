@@ -10,6 +10,7 @@
 
 using namespace macs;
 using namespace macs::internals;
+using namespace macs::types;
 
 namespace macs
 {
@@ -190,19 +191,23 @@ void prg_uniform::operator=(const in *o) throw(exc::invalid_type, exc::texture_n
             throw exc::tex_na;
 
         case in::t_vec4:
-            glUniform4fv(id, 1, static_cast<const types::rps::vec4 *>(o)->v.d);
+            glUniform4fv(id, 1, (**static_cast<const named<vec4> *>(o)).d);
             return;
 
         case in::t_vec3:
-            glUniform3fv(id, 1, static_cast<const types::rps::vec3 *>(o)->v.d);
+            glUniform3fv(id, 1, (**static_cast<const named<vec3> *>(o)).d);
             return;
 
         case in::t_mat4:
-            glUniformMatrix4fv(id, 1, false, static_cast<const types::rps::mat4 *>(o)->m.d);
+            glUniformMatrix4fv(id, 1, false, (**static_cast<const named<mat4> *>(o)).d);
             return;
 
         case in::t_mat3:
-            glUniformMatrix3fv(id, 1, false, static_cast<const types::rps::mat3 *>(o)->m.d);
+            glUniformMatrix3fv(id, 1, false, (**static_cast<const named<mat3> *>(o)).d);
+            return;
+
+        case in::t_float:
+            glUniform1f(id, **static_cast<const named<float> *>(o));
             return;
     }
 

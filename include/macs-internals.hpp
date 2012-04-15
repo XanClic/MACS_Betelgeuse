@@ -247,14 +247,14 @@ namespace macs
                  *
                  * @param tex Texture to be assigned.
                  */
-                void operator=(textures_in *tex);
+                void operator=(const textures_in *tex);
 
                 /**
                  * Converts this TMU to the assigned texture.
                  *
                  * @return Assigned texture.
                  */
-                operator textures_in *(void)
+                operator const textures_in *(void) const
                 { return assigned; }
 
                 /**
@@ -270,7 +270,7 @@ namespace macs
                 /// Hardware TMU index.
                 int unit;
                 /// Texture which has been assigned.
-                textures_in *assigned;
+                const textures_in *assigned;
         };
 
         /**
@@ -306,7 +306,7 @@ namespace macs
                  * @return True, iff a TMU has been found which has already been
                  *         assigned to it.
                  */
-                bool operator&=(textures_in *tex);
+                bool operator&=(const textures_in *tex);
 
                 /**
                  * Assigns this texture to a TMU. Finds a loosely assigned TMU
@@ -318,7 +318,7 @@ namespace macs
                  *       already been set to the given texture, so you should
                  *       use <tt>operator&=</tt> before.
                  */
-                void operator+=(textures_in *tex);
+                void operator+=(const textures_in *tex);
 
                 /**
                  * The last function in the managing cycle. It essentially

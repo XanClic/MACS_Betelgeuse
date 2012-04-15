@@ -17,25 +17,22 @@ int main(void)
         return 1;
 
 
-    macs::texture *tex = new macs::texture("tex");
+    macs::texture tex("tex");
 
-    macs::render *rnd = new macs::render({ }, { tex }, "void main(void) { tex = vec4(tex_coord, 0., 1.); }");
+    macs::render rnd({ }, { &tex }, "", "", "vec4(tex_coord, 0., 1.)");
 
-    rnd->prepare();
-    rnd->execute();
+    rnd.prepare();
+    rnd.execute();
 
 
     macs::render_to_screen(true);
-
-    delete rnd;
 
 
     bool quit = false;
 
     while (!quit)
     {
-        glClear(GL_COLOR_BUFFER_BIT);
-        tex->display();
+        tex.display();
         SDL_GL_SwapBuffers();
 
 

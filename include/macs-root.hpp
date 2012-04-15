@@ -74,7 +74,10 @@ namespace macs
                  *
                  * @sa macs::types::mat3
                  */
-                t_mat3
+                t_mat3,
+
+                /// Scalar floating point number.
+                t_float
             };
 
             /// Derived class type
@@ -138,17 +141,6 @@ namespace macs
     class algebraic: public in
     {
     };
-
-    /// Base class for vectors.
-    class vec: public algebraic
-    {
-    };
-
-    /// Base class for matrices.
-    class mat: public algebraic
-    {
-    };
-
 
     /// Represents textures usable as input.
     class textures_in: public in

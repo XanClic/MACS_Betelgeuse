@@ -536,92 +536,51 @@ namespace macs
 
 
         /**
-         * This namespace contains named variants of the macs::types classes.
-         * These are not usable in any way than to join an identifier and such
-         * a type for use in constructors of render pass objects.
+         * Named wrapper for unnamed types. By using this wrapping class, one
+         * may add an identifier to the supported classes for usage in render
+         * pass scripts.
          */
-        namespace rps
+        template<typename T> class named: public algebraic
         {
-            /// vec4 wrapper
-            class vec4: public vec
-            {
-                public:
-                    /// Basic constructor
-                    vec4(const char *name, const types::vec4 &vector)
-                    { i_type = in::t_vec4; i_name = strdup(name); v = vector; }
+            public:
+                /// Basic constructor
+                named(const char *name, const T &object)
+                { i_name = strdup(name); obj = object; set_type(); }
 
-                    /// Basic deconstructor
-                    ~vec4(void)
-                    { free(const_cast<char *>(i_name)); }
+                /// Basic deconstructor
+                ~named(void)
+                { free(const_cast<char *>(i_name)); }
 
 
-                    friend class internals::prg_uniform;
+                /// Wrapper for accessing the contained object
+                const T &operator*(void) const
+                { return obj; }
 
-                private:
-                    /// Vector
-                    types::vec4 v;
-            };
-
-            /// vec3 wrapper
-            class vec3: public vec
-            {
-                public:
-                    /// Basic constructor
-                    vec3(const char *name, const types::vec3 &vector)
-                    { i_type = in::t_vec3; i_name = strdup(name); v = vector; }
-
-                    /// Basic deconstructor
-                    ~vec3(void)
-                    { free(const_cast<char *>(i_name)); }
+                /// Wrapper for accessing the contained object
+                T &operator*(void)
+                { return obj; }
 
 
-                    friend class internals::prg_uniform;
+            private:
+                /// Sets the i_type to fit T
+                void set_type(void);
 
-                private:
-                    /// Vector
-                    types::vec3 v;
-            };
-
-            /// mat4 wrapper
-            class mat4: public mat
-            {
-                public:
-                    /// Basic constructor
-                    mat4(const char *name, const types::mat4 &matrix)
-                    { i_type = in::t_mat4; i_name = strdup(name); m = matrix; }
-
-                    /// Basic deconstructor
-                    ~mat4(void)
-                    { free(const_cast<char *>(i_name)); }
+                /// Object contained
+                T obj;
+        };
 
 
-                    friend class internals::prg_uniform;
+        template class named<vec4>;
+        template class named<vec3>;
+        template class named<mat4>;
+        template class named<mat3>;
+        template class named<float>;
 
-                private:
-                    /// Matrix
-                    types::mat4 m;
-            };
-
-            /// mat3 wrapper
-            class mat3: public mat
-            {
-                public:
-                    /// Basic constructor
-                    mat3(const char *name, const types::mat3 &matrix)
-                    { i_type = in::t_mat3; i_name = strdup(name); m = matrix; }
-
-                    /// Basic deconstructor
-                    ~mat3(void)
-                    { free(const_cast<char *>(i_name)); }
-
-
-                    friend class internals::prg_uniform;
-
-                private:
-                    /// Matrix
-                    types::mat3 m;
-            };
-        }
+        template<> void named<vec4>::set_type(void) { i_type = in::t_vec4; }
+        template<> void named<vec3>::set_type(void) { i_type = in::t_vec3; }
+        template<> void named<mat4>::set_type(void) { i_type = in::t_mat4; }
+        template<> void named<mat3>::set_type(void) { i_type = in::t_mat3; }
+        template<> void named<float>::set_type(void) { i_type = in::t_float; }
     }
 }
 
