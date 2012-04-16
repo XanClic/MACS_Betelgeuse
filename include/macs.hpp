@@ -150,6 +150,11 @@ namespace macs
              *       more than one physical render pass, especially if you use
              *       more output textures than physically allowed.
              *
+             * @note If you want to execute the same render pass object all over
+             *       while altering the input object values (non-textures only)
+             *       for each pass, you may do exactly that (you have to call
+             *       <tt>prepare()</tt> just once).
+             *
              * @sa int max_output_textures(void)
              */
             void execute(void);
@@ -194,10 +199,11 @@ namespace macs
              * comparison function.
              *
              * @param dt Enables depth testing iff true, else disables it.
-             * @param comp Comparison function; defaults to pass::less. The
-             *             current function will not be altered if dt is false.
+             * @param comp Comparison function; defaults to pass::less_or_equal.
+             *             The current function will not be altered if dt is
+             *             false.
              */
-            void use_depth(bool dt, comparison comp = less);
+            void use_depth(bool dt, comparison comp = less_or_equal);
 
             /**
              * Clear the attached depth buffer. Sets all fragments of the
@@ -273,6 +279,48 @@ namespace macs
             void stencil_values(uint8_t ref, uint8_t mask);
 
 
+            /**
+             * Blending modes. Sets how fragment values are combined from
+             * existing and newly written values. One factor is used for scaling
+             * the old and one for the new value.
+             */
+            enum blend_fact
+            {
+                /// Don't use
+                discard = GL_ZERO,
+                /// Use directly
+                use = GL_ONE,
+                /// Multiply by source color
+                source = GL_SRC_COLOR,
+                /// Multiply by negated source color ((1, 1, 1, 1) - source)
+                neg_source = GL_ONE_MINUS_SRC_COLOR,
+                /// Multiply by destination color
+                destination = GL_DST_COLOR,
+                /// Multiply by negated destination color ((1, 1, 1, 1) - destination)
+                neg_destination = GL_ONE_MINUS_DST_COLOR,
+                /// Multiply by source alpha value
+                src_alpha = GL_SRC_ALPHA,
+                /// Multiply by negated source alpha value (1 - source alpha)
+                neg_src_alpha = GL_ONE_MINUS_SRC_ALPHA,
+                /// Multiply by destination alpha value
+                dst_alpha = GL_DST_ALPHA,
+                /// Multiply by negated destination alpha value (1 - destination alpha)
+                neg_dst_alpha = GL_ONE_MINUS_DST_ALPHA
+            };
+
+            /**
+             * Sets the blending function. On a write to a fragment, the
+             * blending specifies how the existing buffer content and how the
+             * newly written color is to be accounted, respectively. This
+             * function specifies how to weigh both.
+             *
+             * @param src Specifies the source weight (newly written values).
+             * @param dst Specifies the destination weight (values already
+             *            contained in the frame buffer).
+             */
+            void blend_func(blend_fact src, blend_fact dst);
+
+
         private:
             /// OpenGL FBO ID
             GLuint id;
@@ -296,6 +344,10 @@ namespace macs
             stencil_op sodf;
             /// Stencil operation on depth pass
             stencil_op sodp;
+            /// Blending factor for source values
+            blend_fact bfsrc;
+            /// Blending factor for destination values
+            blend_fact bfdst;
 
             /// Input objects
             std::vector<const in *> inp_objs;

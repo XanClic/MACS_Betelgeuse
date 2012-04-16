@@ -71,6 +71,14 @@ bool shader::compile(void)
     glCompileShader(id);
 
 
+    int status;
+    glGetShaderiv(id, GL_COMPILE_STATUS, &status);
+    if (status == GL_TRUE)
+        dbgprintf("[sh%u] Compilation successful.\n", id);
+    else
+        dbgprintf("[sh%u] Compilation failed.\n", id);
+
+
     int illen;
     glGetShaderiv(id, GL_INFO_LOG_LENGTH, &illen);
     if (illen > 1)
@@ -80,18 +88,14 @@ bool shader::compile(void)
         glGetShaderInfoLog(id, illen, NULL, msg);
         msg[illen] = 0; // inb4 implementation bug
 
-        dbgprintf("[sh%u] Shader compile message: %s", id, msg);
+        if (status == GL_TRUE)
+            dbgprintf("[sh%u] Shader compile message: %s", id, msg);
+        else
+            fprintf(stderr, "[sh%u] Shader compile message: %s", id, msg);
 
         delete msg;
     }
 
-
-    int status;
-    glGetShaderiv(id, GL_COMPILE_STATUS, &status);
-    if (status == GL_TRUE)
-        dbgprintf("[sh%u] Compilation successful.\n", id);
-    else
-        dbgprintf("[sh%u] Compilation failed.\n", id);
 
     return status == GL_TRUE;
 }
@@ -126,6 +130,14 @@ bool program::link(void)
     glLinkProgram(id);
 
 
+    int status;
+    glGetProgramiv(id, GL_LINK_STATUS, &status);
+    if (status == GL_TRUE)
+        dbgprintf("[pr%u] Linking successful.\n", id);
+    else
+        dbgprintf("[pr%u] Linking failed.\n", id);
+
+
     int illen;
     glGetProgramiv(id, GL_INFO_LOG_LENGTH, &illen);
     if (illen > 1)
@@ -135,18 +147,13 @@ bool program::link(void)
         glGetShaderInfoLog(id, illen, NULL, msg);
         msg[illen] = 0; // inb4 implementation bug
 
-        dbgprintf("[pr%u] Program link message: %s", id, msg);
+        if (status == GL_TRUE)
+            dbgprintf("[pr%u] Program link message: %s", id, msg);
+        else
+            fprintf(stderr, "[pr%u] Program link message: %s", id, msg);
 
         delete msg;
     }
-
-
-    int status;
-    glGetProgramiv(id, GL_LINK_STATUS, &status);
-    if (status == GL_TRUE)
-        dbgprintf("[pr%u] Linking successful.\n", id);
-    else
-        dbgprintf("[pr%u] Linking failed.\n", id);
 
 
     return status == GL_TRUE;

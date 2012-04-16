@@ -10,6 +10,6 @@
 /**
  * DEBUG macro. If enabled, generate debugging code.
  */
-#define DEBUG
+// #define DEBUG
 
 #endif

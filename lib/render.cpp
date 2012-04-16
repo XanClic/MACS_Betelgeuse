@@ -26,6 +26,9 @@ render::render(std::initializer_list<const in *> input, std::initializer_list<co
     sosf = sodf = render::keep;
     sodp = render::replace;
 
+    bfsrc = render::use;
+    bfdst = render::discard;
+
     prg = NULL;
 
 
@@ -58,11 +61,13 @@ render::render(std::initializer_list<const in *> input, std::initializer_list<co
             }
 
             case in::t_vec3:
-                final_src += std::string("#define ") + name + " " + static_cast<std::string>(**static_cast<const named<vec3> *>(obj)) + "\n";
+                // final_src += std::string("#define ") + name + " " + static_cast<std::string>(**static_cast<const named<vec3> *>(obj)) + "\n";
+                final_src += std::string("uniform vec3 ") + name + ";\n";
                 break;
 
             case in::t_vec4:
-                final_src += std::string("#define ") + name + " " + static_cast<std::string>(**static_cast<const named<vec4> *>(obj)) + "\n";
+                // final_src += std::string("#define ") + name + " " + static_cast<std::string>(**static_cast<const named<vec4> *>(obj)) + "\n";
+                final_src += std::string("uniform vec4 ") + name + ";\n";
                 break;
 
             case in::t_mat3:
@@ -75,9 +80,12 @@ render::render(std::initializer_list<const in *> input, std::initializer_list<co
 
             case in::t_float:
             {
+                /*
                 char float_val[16]; // FIXME
                 sprintf(float_val, "%f", **static_cast<const named<float> *>(obj));
                 final_src += std::string("#define ") + name + " " + float_val + "\n";
+                */
+                final_src += std::string("uniform float ") + name + ";\n";
                 break;
             }
 
@@ -252,21 +260,24 @@ void render::prepare(void)
     }
 
 
+    glBlendFunc(bfsrc, bfdst);
+
+
     dbgprintf("[rnd%u] Putting shader into use.\n", id);
 
     prg->use();
-
-
-    dbgprintf("[rnd%u] Assigning uniforms.\n", id);
-
-    for (auto obj: inp_objs)
-        if ((obj->i_type == in::t_texture) || (obj->i_type == in::t_texture_array))
-            prg->uniform(obj->i_name) = obj;
 }
-
 
 void render::execute(void)
 {
+    dbgprintf("[rnd%u] Assigning uniforms.\n", id);
+
+    for (auto obj: inp_objs)
+          //if ((obj->i_type == in::t_texture) || (obj->i_type == in::t_texture_array) ||
+          //    (obj->i_type == in::t_mat3)    || (obj->i_type == in::t_mat4))
+            prg->uniform(obj->i_name) = obj;
+
+
     dbgprintf("[rnd%u] Drawing quad.\n", id);
     internals::draw_quad();
 }
@@ -315,6 +326,11 @@ void render::stencil_values(uint8_t ref, uint8_t mask)
 void render::stencil_operation(render::stencil_op sf, render::stencil_op df, render::stencil_op dp)
 {
     sosf = sf; sodf = df; sodp = dp;
+}
+
+void render::blend_func(render::blend_fact src, render::blend_fact dst)
+{
+    bfsrc = src; bfdst = dst;
 }
 
 
