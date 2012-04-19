@@ -10,7 +10,6 @@
 #define MACS_INTERNALS_HPP
 
 #include <cstdio>
-#include <vector>
 
 #include <GL/gl.h>
 

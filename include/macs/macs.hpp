@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <exception>
 #include <initializer_list>
-#include <vector>
+#include <list>
 
 
 #include "macs-exceptions.hpp"
@@ -322,8 +322,15 @@ namespace macs
 
 
         private:
-            /// OpenGL FBO ID
-            GLuint id;
+            /// Binds an FBO for drawing.
+            void bind_fbo(int i);
+
+
+            /// Number of FBOs
+            int fbos;
+
+            /// OpenGL FBO IDs
+            GLuint *ids;
 
             /// Depth testing enabled
             bool de;
@@ -350,12 +357,15 @@ namespace macs
             blend_fact bfdst;
 
             /// Input objects
-            std::vector<const in *> inp_objs;
+            std::list<const in *> inp_objs;
             /// Output objects
-            std::vector<const out *> out_objs;
+            std::list<const out *> out_objs;
 
-            /// Generated program
-            internals::program *prg;
+            /// Generated programs
+            internals::program *prgs;
+
+            /// True iff that's the case.
+            bool freshly_prepared;
     };
 
 

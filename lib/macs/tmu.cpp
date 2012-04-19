@@ -115,6 +115,16 @@ void tmu_manager::operator+=(const textures_in *tex)
 {
     for (int i = 0; i < units; i++)
     {
+        if (tmus[i] == NULL)
+        {
+            definitely[i] = true;
+            tmus[i] = tex;
+            return;
+        }
+    }
+
+    for (int i = 0; i < units; i++)
+    {
         if (!definitely[i])
         {
             definitely[i] = true;
@@ -128,7 +138,4 @@ void tmu_manager::operator+=(const textures_in *tex)
 
 void tmu_manager::update(void)
 {
-    for (int i = 0; i < units; i++)
-        if (!definitely[i] && (tmus[i] != NULL))
-            tmus[i] = NULL;
 }
