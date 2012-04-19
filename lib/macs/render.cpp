@@ -260,7 +260,13 @@ void render::prepare(void)
     }
 
 
-    glBlendFunc(bfsrc, bfdst);
+    if ((bfsrc == use) && (bfdst == discard))
+        glDisable(GL_BLEND);
+    else
+    {
+        glEnable(GL_BLEND);
+        glBlendFunc(bfsrc, bfdst);
+    }
 
 
     dbgprintf("[rnd%u] Putting shader into use.\n", id);
@@ -340,4 +346,8 @@ void macs::render_to_screen(bool backbuffer)
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     glDrawBuffer(backbuffer ? GL_BACK : GL_FRONT);
+
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_ALPHA_TEST);
+    glDisable(GL_BLEND);
 }

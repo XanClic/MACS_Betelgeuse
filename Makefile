@@ -1,41 +1,42 @@
 CXX ?= g++
 CXXFLAGS += -g -O3 -Wall -Wextra -Wshadow -Wno-switch -std=c++11 -Iinclude -D_POSIX_C_SOURCE=201204 -DGL_GLEXT_PROTOTYPES -UGL_GLEXT_LEGACY
+LIBCXXFLAGS += -Iinclude/macs -Iinclude/betelgeuse
 LINK ?= $(CXX)
-LDFLAGS += -Llib -lmacs -lSDL -lGL -lm
+LDFLAGS += -Llib -lbetelgeuse -lmacs -lSDL -lGL -lm
 
 AR ?= ar
 RM ?= rm
 MAKE ?= make
 
-LIBOBJS = $(patsubst %.cpp,%.o,$(wildcard lib/*.cpp))
+MACSOBJS = $(patsubst %.cpp,%.o,$(wildcard lib/macs/*.cpp))
+BETELOBJS = $(patsubst %.cpp,%.o,$(wildcard lib/betelgeuse/*.cpp))
 TESTS = $(patsubst %/,tests/test_%,$(shell ls -p tests | grep /))
 
-.PHONY: all lib tests doc doxygen pdf
+.PHONY: all libs tests doc doxygen pdf
 
-all: lib tests
+all: libs tests
 
-lib: lib/libmacs.a
+libs: lib/libmacs.a lib/libbetelgeuse.a
 
-lib/libmacs.a: $(LIBOBJS)
+lib/libmacs.a: $(MACSOBJS)
+	$(AR) rcs $@ $^
+
+lib/libbetelgeuse.a: $(BETELOBJS)
 	$(AR) rcs $@ $^
 
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(LIBCXXFLAGS) -c $< -o $@
 
 tests: $(TESTS)
 
-doc: doxygen-public doxygen-private
-#pdf-public pdf-private
-
-pdf-%: doxygen-%
-	$(MAKE) -C doc/$*/latex
+doc: doxygen-macs-public doxygen-macs-private doxygen-betelgeuse-public doxygen-betelgeuse-private
 
 doxygen-%:
-	doxygen doc/$*/Doxyfile
+	doxygen doc/$(subst -,/,$*)/Doxyfile
 
 clean:
-	$(RM) -f lib/libmacs.a lib/*.o tests/test_* tests/*/*.o doc/*/Doxyfile.bak
-	$(RM) -rf doc/*/html doc/*/man doc/*/latex
+	$(RM) -f lib/lib*.a lib/*/*.o tests/test_* tests/*/*.o doc/*/*/Doxyfile.bak
+	$(RM) -rf doc/*/*/html doc/*/*/man doc/*/*/latex
 
 
 # FIXME
@@ -43,5 +44,5 @@ PATSUBST_FROM = %.cpp
 PATSUBST_TO   = %.o
 
 .SECONDEXPANSION:
-tests/test_%: $$(patsubst $$(PATSUBST_FROM),$$(PATSUBST_TO),$$(wildcard tests/%/*.cpp)) lib/libmacs.a
-	$(LINK) $(subst lib/libmacs.a,,$^) -o $@ $(LDFLAGS)
+tests/test_%: $$(patsubst $$(PATSUBST_FROM),$$(PATSUBST_TO),$$(wildcard tests/%/*.cpp)) lib/libbetelgeuse.a lib/libmacs.a
+	$(LINK) $(CXXFLAGS) $(subst lib/libbetelgeuse.a,,$(subst lib/libmacs.a,,$^)) -o $@ $(LDFLAGS)

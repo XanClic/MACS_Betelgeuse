@@ -1,11 +1,11 @@
 # Doxyfile 1.8.0
 
 DOXYFILE_ENCODING      = UTF-8
-PROJECT_NAME           = "MACS"
+PROJECT_NAME           = "Betelgeuse"
 PROJECT_NUMBER         =
-PROJECT_BRIEF          = "Massive Arbitrary Computations by Shaders"
+PROJECT_BRIEF          = "Hardware raytracing library based on MACS"
 PROJECT_LOGO           =
-OUTPUT_DIRECTORY       = doc/private
+OUTPUT_DIRECTORY       = doc/betelgeuse/private
 CREATE_SUBDIRS         = NO
 OUTPUT_LANGUAGE        = English
 BRIEF_MEMBER_DESC      = YES
@@ -86,7 +86,7 @@ WARN_NO_PARAMDOC       = NO
 WARN_FORMAT            = "$file:$line: $text"
 WARN_LOGFILE           =
 
-INPUT                  = lib include
+INPUT                  = lib/betelgeuse include/betelgeuse
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          = *.cpp *.hpp
 RECURSIVE              = YES

@@ -1,6 +1,6 @@
 #include <SDL/SDL.h>
 
-#include "macs.hpp"
+#include <macs/macs.hpp>
 
 
 int main(void)
