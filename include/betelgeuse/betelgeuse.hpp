@@ -32,6 +32,10 @@ namespace betelgeuse
     bool init(int width, int height, bool double_buffering = true);
 
 
+    /**
+     * @private
+     * True iff double buffering should be used (render to back buffer).
+     */
     extern bool _dbl_buf;
 }
 
