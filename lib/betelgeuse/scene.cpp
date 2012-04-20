@@ -27,7 +27,7 @@ scene::scene(void):
 
     ray_stt("ray_starting_points"), ray_dir("ray_directions"),
     glob_isct("global_intersection"), norm_map("normal_map"), tang_map("tangent_map"),
-    color_map("color_map"), ambient_map("ambient_map"), rp_map("rp_map"),
+    color_map("color_map"), ambient_map("ambient_map"), rpuv_map("rpuv_map"),
     asten("stencil")
 
 {
@@ -67,10 +67,13 @@ void scene::new_object_type(object *obj)
 {
     objs.push_back(obj);
 
+    texture_placebo col_plac("color_tex"), amb_plac("ambient_tex"), rp_plac("rp_tex");
+
     obj->isct = new macs::render(
         { &ray_stt, &ray_dir, &zfar, &obj->cur_trans, &obj->cur_inv_trans, &obj->cur_normal,
-          &obj->cur_color, &obj->cur_ambient, &obj->cur_r, &obj->cur_p },
-        { &glob_isct, &norm_map, &tang_map, &color_map, &ambient_map, &rp_map, &asten, &sd },
+          &obj->cur_color_flat_tex, &obj->cur_ambient_flat_tex, &obj->cur_rp_flat_tex,
+          &obj->cur_color_flat, &obj->cur_ambient_flat, &obj->cur_rp_flat, &col_plac, &amb_plac, &rp_plac },
+        { &glob_isct, &norm_map, &tang_map, &color_map, &ambient_map, &rpuv_map, &asten, &sd },
 
         obj->global_src,
 
@@ -93,10 +96,14 @@ void scene::new_object_type(object *obj)
         "if (ndy == 0.)\n"
         "    discard;\n\n"
         "else if (ndy < 0.)\n"
-        "    n = -n;",
+        "    n = -n;\n\n"
+        "vec2 uv = get_uv(local_coord);\n\n"
+        "vec3 point_color   = color_switch   ? texture2D(raw_color_tex,   uv).xyz : color_flat;\n"
+        "vec3 point_ambient = ambient_switch ? texture2D(raw_ambient_tex, uv).xyz : ambient_flat;\n"
+        "vec2 rp            = rp_switch      ? texture2D(raw_rp_tex,      uv).xy  : rp_flat;",
 
         "global_coord", "vec4(n, ndy)", "vec4(t, 0.)",
-        "vec4(color, 0.)", "vec4(ambient, 0.)", "vec4(roughness, isotropy, 0., 0.)",
+        "vec4(point_color, 0.)", "vec4(point_ambient, 0.)", "vec4(rp, 0., 0.)",
         "vec4(1., 0., 0., 0.)", "par / zfar"
     );
 
@@ -111,7 +118,7 @@ void scene::add_light(light *lgt)
     asprintf(&global_src, "float attenuation(float distance)\n{\n%s\n}", lgt->atten_func);
 
     lgt->shade = new macs::render(
-        { &glob_isct, &ray_dir, &norm_map, &tang_map, &color_map, &ambient_map, &rp_map, &asten,
+        { &glob_isct, &ray_dir, &norm_map, &tang_map, &color_map, &ambient_map, &rpuv_map, &asten,
           &lgt->position, &lgt->direction, &lgt->color, &lgt->distr_exp, &lgt->limit_angle_cos, &lgt->atten_par },
         { &output },
 
@@ -150,7 +157,7 @@ void scene::add_light(light *lgt)
         "}\n\n"
         "ndotny_sqr *= ndotny_sqr;\n\n"
         "vec3 point_color = attenuation(dist) * pow(xdotr, distribution_exponent) * color;\n\n"
-        "float r = rp_map.x, p = rp_map.y;\n"
+        "float r = rpuv_map.x, p = rpuv_map.y;\n"
         "float psqr = p * p;\n"
         "float g_ndotx = ndotx / (r - r * ndotx + ndotx);\n"
         "float g_ndoty = ndoty / (r - r * ndoty + ndoty);\n\n"
@@ -161,7 +168,7 @@ void scene::add_light(light *lgt)
         "float fresnel_appr = pow(1. - xdotny, 5.);\n\n"
         "vec3 brdf = (color_map.rgb + (vec3(1., 1., 1.) - color_map.rgb) * fresnel_appr) * layer;",
 
-        "vec4(point_color.r * brdf.r, point_color.g * brdf.g, point_color.b * brdf.b, 0.) * ndotx"
+        "vec4(point_color * brdf, 0.) * ndotx"
     );
 
     lgt->shade->blend_func(render::use, render::use);
@@ -181,6 +188,7 @@ void scene::render(void)
 void scene::render_view(void)
 {
     rnd_view->prepare();
+    rnd_view->bind_input();
     rnd_view->execute();
 }
 
@@ -196,12 +204,34 @@ void scene::render_intersection(void)
             *obj->cur_inv_trans = i->inv_trans;
             *obj->cur_normal = i->normal;
 
-            *obj->cur_color = i->mat.color;
-            *obj->cur_ambient = i->mat.ambient;
-            *obj->cur_r = i->mat.r;
-            *obj->cur_p = i->mat.p;
+            if (i->mat.color_texed)
+                *obj->isct << i->mat.color.tex;
+            else
+                *obj->cur_color_flat = i->mat.color.flat;
 
+            if (i->mat.ambient_texed)
+                *obj->isct << i->mat.ambient.tex;
+            else
+                *obj->cur_ambient_flat = i->mat.ambient.flat;
+
+            if (i->mat.rp_texed)
+                *obj->isct << i->mat.rp.tex;
+            else
+                *obj->cur_rp_flat = i->mat.rp.flat;
+
+            *obj->cur_color_flat_tex = i->mat.color_texed;
+            *obj->cur_ambient_flat_tex = i->mat.ambient_texed;
+            *obj->cur_rp_flat_tex = i->mat.rp_texed;
+
+            obj->isct->bind_input();
             obj->isct->execute();
+
+            if (i->mat.color_texed)
+                *obj->isct >> i->mat.color.tex;
+            if (i->mat.ambient_texed)
+                *obj->isct >> i->mat.ambient.tex;
+            if (i->mat.rp_texed)
+                *obj->isct >> i->mat.rp.tex;
         }
     }
 }
@@ -213,6 +243,7 @@ void scene::render_shading(void)
     for (auto lgt: lgts)
     {
         lgt->shade->prepare();
+        lgt->shade->bind_input();
 
         if (first_light)
         {

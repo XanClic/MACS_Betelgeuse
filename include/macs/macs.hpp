@@ -137,6 +137,8 @@ namespace macs
              */
             void prepare(void);
 
+            void bind_input(void);
+
 
             /**
              * Executes this render pass. You have to call the
@@ -319,6 +321,12 @@ namespace macs
              *            contained in the frame buffer).
              */
             void blend_func(blend_fact src, blend_fact dst);
+
+
+            /// Appends a texture.
+            void operator<<(const texture *tex);
+            /// Removes a texture.
+            void operator>>(const texture *tex);
 
 
         private:

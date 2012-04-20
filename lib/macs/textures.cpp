@@ -10,8 +10,11 @@
 using namespace macs;
 
 
-texture::texture(const char *n)
+texture::texture(const char *n, int w, int h)
 {
+    width  = (w <= 0) ? internals::width  : w;
+    height = (h <= 0) ? internals::height : h;
+
     i_type = in::t_texture;
     o_type = out::t_texture;
 
@@ -24,7 +27,7 @@ texture::texture(const char *n)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F_ARB, internals::width, internals::height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F_ARB, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
 }
 
 texture::~texture(void)
@@ -39,7 +42,7 @@ texture::~texture(void)
     void texture::write(const formats::format *src) \
     { \
         (*internals::tmu_mgr)[0] = this; \
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, internals::width, internals::height, gl_format, GL_FLOAT, src); \
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, gl_format, GL_FLOAT, src); \
     }
 
 texture_write(f0123, GL_RGBA)

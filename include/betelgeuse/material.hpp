@@ -19,14 +19,39 @@ namespace betelgeuse
      */
     struct material
     {
-        /// Main color
-        macs::types::vec3 color;
-        /// Ambient lighting
-        macs::types::vec3 ambient;
-        /// Roughness
-        float r;
-        /// Isotropy
-        float p;
+        /// True iff color is textured
+        bool color_texed;
+        /// True iff ambient lighting is textured
+        bool ambient_texed;
+        /// True iff roughness/isotropy is textured
+        bool rp_texed;
+
+
+        // unions would be nicer, they do however not work.
+
+        struct
+        {
+            /// Constant value
+            macs::types::vec3 flat;
+            /// Textured
+            macs::texture *tex;
+        } /** Main color */ color;
+
+        struct
+        {
+            /// Constant value
+            macs::types::vec3 flat;
+            /// Textured
+            macs::texture *tex;
+        } /** Ambient lighting */ ambient;
+
+        struct
+        {
+            /// Constant values
+            macs::types::vec2 flat;
+            /// Textured
+            macs::texture *tex;
+        } /** Roughness/isotropy */ rp;
     };
 }
 

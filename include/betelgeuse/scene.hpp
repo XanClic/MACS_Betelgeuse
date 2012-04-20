@@ -108,8 +108,8 @@ namespace betelgeuse
             macs::texture color_map;
             /// Material ambient map.
             macs::texture ambient_map;
-            /// Material roughness/isotropy map.
-            macs::texture rp_map;
+            /// Material roughness/isotropy and texture UV map.
+            macs::texture rpuv_map;
 
             /// "Artificial" stencil buffer (for early-out in fragment shaders).
             macs::texture asten;

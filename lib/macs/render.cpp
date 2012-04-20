@@ -66,16 +66,22 @@ render::render(std::initializer_list<const in *> input, std::initializer_list<co
         switch (obj->i_type)
         {
             case in::t_texture:
-                final_src[0] += std::string("uniform sampler2D ") + name + ";\n#define " + name + " texture2D(" + name + ", tex_coord)\n";
+            case in::t_texture_placebo:
+                final_src[0] += std::string("uniform sampler2D raw_") + name + ";\n";
+                final_src[0] += "#define " + name + " texture2D(raw_" + name + ", tex_coord)\n";
                 break;
 
             case in::t_texture_array:
             {
                 char layers[6]; // FIXME: Overflow
                 sprintf(layers, "%i", static_cast<const texture_array *>(obj)->elements);
-                final_src[0] += std::string("uniform sampler3D ") + name + ";\n#define " + name + "(layer) texture3D(" + name + ", vec3(tex_coord, float(layer) / " + layers + ".0))\n";
+                final_src[0] += std::string("uniform sampler3D raw_") + name + ";\n#define " + name + "(layer) texture3D(raw_" + name + ", vec3(tex_coord, float(layer) / " + layers + ".0))\n";
                 break;
             }
+
+            case in::t_vec2:
+                final_src[0] += std::string("uniform vec2 ") + name + ";\n";
+                break;
 
             case in::t_vec3:
                 // final_src[0] += std::string("#define ") + name + " " + static_cast<std::string>(**static_cast<const named<vec3> *>(obj)) + "\n";
@@ -106,7 +112,12 @@ render::render(std::initializer_list<const in *> input, std::initializer_list<co
                 break;
             }
 
+            case in::t_bool:
+                final_src[0] += std::string("uniform bool ") + name + ";\n";
+                break;
+
             default: // This should never happen
+                printf("Throwing for %i.\n", obj->i_type);
                 throw exc::inv_type;
         }
     }
@@ -233,7 +244,10 @@ render::render(std::initializer_list<const in *> input, std::initializer_list<co
     delete[] final_src;
 
 
-    inp_objs.insert(inp_objs.begin(), input);
+    for (auto in: input)
+        if (in->i_type != in::t_texture_placebo)
+            inp_objs.push_back(in);
+
     out_objs.insert(out_objs.begin(), output);
 }
 
@@ -290,26 +304,6 @@ void render::prepare(void)
     dbgprintf("[rnd%u..] Preparing.\n", ids[0]);
 
 
-    bool *assigned = new bool[inp_objs.size()];
-
-
-    internals::tmu_mgr->loosen();
-
-    int i = 0;
-    for (auto obj: inp_objs)
-        if ((obj->i_type == in::t_texture) || (obj->i_type == in::t_texture_array))
-            assigned[i++] = *internals::tmu_mgr &= static_cast<const textures_in *>(obj);
-
-    i = 0;
-    for (auto obj: inp_objs)
-        if (!assigned[i++] && ((obj->i_type == in::t_texture) || (obj->i_type == in::t_texture_array)))
-            *internals::tmu_mgr += static_cast<const textures_in *>(obj);
-
-    delete[] assigned;
-
-    internals::tmu_mgr->update();
-
-
     bind_fbo(0);
 
 
@@ -349,6 +343,30 @@ void render::prepare(void)
     freshly_prepared = true;
 }
 
+
+void render::bind_input(void)
+{
+    bool *assigned = new bool[inp_objs.size()];
+
+
+    internals::tmu_mgr->loosen();
+
+    int i = 0;
+    for (auto obj: inp_objs)
+        if ((obj->i_type == in::t_texture) || (obj->i_type == in::t_texture_array))
+            assigned[i++] = *internals::tmu_mgr &= static_cast<const textures_in *>(obj);
+
+    i = 0;
+    for (auto obj: inp_objs)
+        if (!assigned[i++] && ((obj->i_type == in::t_texture) || (obj->i_type == in::t_texture_array)))
+            *internals::tmu_mgr += static_cast<const textures_in *>(obj);
+
+    delete[] assigned;
+
+    internals::tmu_mgr->update();
+}
+
+
 void render::execute(void)
 {
     for (int i = 0; i < fbos; i++)
@@ -366,9 +384,12 @@ void render::execute(void)
         dbgprintf("[rnd%u] Assigning uniforms.\n", ids[i]);
 
         for (auto obj: inp_objs)
-              //if ((obj->i_type == in::t_texture) || (obj->i_type == in::t_texture_array) ||
-              //    (obj->i_type == in::t_mat3)    || (obj->i_type == in::t_mat4))
+        {
+            if ((obj->i_type == in::t_texture) || (obj->i_type == in::t_texture_array))
+                prgs[i].uniform((std::string("raw_") + obj->i_name).c_str()) = obj;
+            else
                 prgs[i].uniform(obj->i_name) = obj;
+        }
 
 
         dbgprintf("[rnd%u] Drawing quad.\n", ids[i]);
@@ -440,6 +461,17 @@ void render::stencil_operation(render::stencil_op sf, render::stencil_op df, ren
 void render::blend_func(render::blend_fact src, render::blend_fact dst)
 {
     bfsrc = src; bfdst = dst;
+}
+
+
+void render::operator<<(const texture *tex)
+{
+    inp_objs.push_back(tex);
+}
+
+void render::operator>>(const texture *tex)
+{
+    inp_objs.remove(tex);
 }
 
 

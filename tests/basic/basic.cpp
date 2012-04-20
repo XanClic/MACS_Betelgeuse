@@ -22,6 +22,7 @@ int main(void)
     macs::render rnd({ }, { &tex }, "", "", "vec4(tex_coord, 0., 1.)");
 
     rnd.prepare();
+    rnd.bind_input();
     rnd.execute();
 
 

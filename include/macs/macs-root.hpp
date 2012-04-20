@@ -42,6 +42,13 @@ namespace macs
                 t_texture,
 
                 /**
+                 * 2D texture place holder.
+                 *
+                 * @sa macs::texture_placebo
+                 */
+                t_texture_placebo,
+
+                /**
                  * Array of 2D textures.
                  *
                  * @sa macs::texture_array
@@ -63,6 +70,13 @@ namespace macs
                 t_vec3,
 
                 /**
+                 * 2-element vector.
+                 *
+                 * @sa macs::types::vec2
+                 */
+                t_vec2,
+
+                /**
                  * 4x4 matrix.
                  *
                  * @sa macs::types::mat4
@@ -77,7 +91,10 @@ namespace macs
                 t_mat3,
 
                 /// Scalar floating point number.
-                t_float
+                t_float,
+
+                /// Scalar boolean.
+                t_bool
             };
 
             /// Derived class type

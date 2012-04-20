@@ -40,8 +40,10 @@ namespace macs
              * specified during the <tt>macs::init()</tt> call.
              *
              * @param name Name which is used to denote this texture in scripts
+             * @param width Texture width (defaults to fundamental width)
+             * @param height Texture height (defaults to fundamental height)
              */
-            texture(const char *name);
+            texture(const char *name, int width = -1, int height = -1);
 
             /**
              * Destroys a texture.
@@ -100,6 +102,22 @@ namespace macs
         private:
             /// OpenGL texture ID
             GLuint id;
+
+            /// Width
+            int width;
+            /// Height
+            int height;
+    };
+
+
+    class texture_placebo: public textures_in
+    {
+        public:
+            texture_placebo(const char *name)
+            { i_type = in::t_texture_placebo; i_name = strdup(name); }
+
+            ~texture_placebo(void)
+            { free(const_cast<char *>(i_name)); }
     };
 
 

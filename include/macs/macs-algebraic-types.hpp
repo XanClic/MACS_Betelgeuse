@@ -344,6 +344,149 @@ namespace macs
         };
 
 
+        /// 2-element vector consisting of floats
+        class vec2
+        {
+            public:
+                /**
+                 * Basic constructor. All coordinates will be set to zero.
+                 */
+                vec2(void)
+                { memset(d, 0, sizeof(d)); }
+
+                /**
+                 * Basic constructor.
+                 *
+                 * @param dat Array containing the initial values.
+                 */
+                vec2(const float *dat)
+                { memcpy(d, dat, sizeof(d)); }
+
+                /// @overload vec2::vec2(const float *dat)
+                vec2(float xv, float yv):
+                    x(xv), y(yv) {}
+
+
+                /**
+                 * Overloads indexing. With the [] operator you are able to
+                 * access every coordinate according to its index.
+                 *
+                 * @param index Index to be addressed.
+                 *
+                 * @return Reference to the coordinate.
+                 *
+                 * @note This function does not perform bounds checking.
+                 */
+                float &operator[](int index)
+                { return d[index]; }
+
+                /// @overload float &vec2::operator[](int index)
+                float operator[](int index) const
+                { return d[index]; }
+
+
+                /**
+                 * Vector addition. Adds two vectors component-by-component.
+                 */
+                vec2 operator+(const vec2 &ov) const
+                { return vec2(x + ov.x, y + ov.y); }
+
+                /**
+                 * Vector addition. Adds the given vector to this one.
+                 */
+                const vec2 &operator+=(const vec2 &ov)
+                { x += ov.x; y += ov.y; return *this; }
+
+                /**
+                 * Vector subtraction. Subtracts two vectors component-by-component.
+                 */
+                vec2 operator-(const vec2 &ov) const
+                { return vec2(x - ov.x, y - ov.y); }
+
+                /**
+                 * Vector subtraction. Subtracts the given vector from this one.
+                 */
+                const vec2 &operator-=(const vec2 &ov)
+                { x -= ov.x; y -= ov.y; return *this; }
+
+                /**
+                 * Scalar multiplication. Multiplies a vector with a scalar
+                 * value.
+                 */
+                vec2 operator*(float sv) const
+                { return vec2(sv * x, sv * y); }
+
+                /**
+                 * Scalar multiplication. Multiplies every component of this
+                 * vector with the given scalar value.
+                 */
+                const vec2 &operator*=(float sv)
+                { x *= sv; y *= sv; return *this; }
+
+                /**
+                 * Dot product. Executes the dot product on two vectors.
+                 */
+                float operator*(const vec2 &ov) const
+                { return x * ov.x + y * ov.y; }
+
+                /// Length (norm) of this vector.
+                float length(void) const
+                { return sqrtf(x * x + y * y); }
+
+                /**
+                 * Squares this vector. The result is the squared length (dot
+                 * product of this vector with itself).
+                 */
+                float sqr(void) const
+                { return x * x + y * y; }
+
+                /**
+                 * Norms this vector and returns the result.
+                 *
+                 * @return Normed vector (length is 1) which points to the same
+                 *         direction as this one does.
+                 */
+                vec2 normed(void) const
+                {
+                    float rlen = 1.f / length();
+                    return vec2(rlen * x, rlen * y);
+                }
+
+                /// Norms this vector, storing the result in here.
+                void norm(void)
+                {
+                    float rlen = 1.f / length();
+                    x *= rlen; y *= rlen;
+                }
+
+
+                /**
+                 * Converts a vector into a string representation (for usage
+                 * in render pass scripts).
+                 */
+                operator std::string(void) const
+                {
+                    char str[64]; // FIXME
+                    sprintf(str, "vec2(%f, %f)", x, y);
+                    return std::string(str);
+                }
+
+
+                /// Coordinates in different flavors.
+                union
+                {
+                    /// An array
+                    float d[2];
+                    /// XYZW (coordinates)
+                    struct { float x, y; };
+                    /// RGBA (color channels)
+                    struct { float r, g; };
+                    /// STPQ (texture coordinates)
+                    struct { float s, t; };
+                };
+        };
+
+
         /// 4x4 matrix consisting of floats.
         class mat4
         {
@@ -572,14 +715,18 @@ namespace macs
 
         template class named<vec4>;
         template class named<vec3>;
+        template class named<vec2>;
         template class named<mat4>;
         template class named<mat3>;
+        template class named<bool>;
         template class named<float>;
 
         template<> void named<vec4>::set_type(void) { i_type = in::t_vec4; }
         template<> void named<vec3>::set_type(void) { i_type = in::t_vec3; }
+        template<> void named<vec2>::set_type(void) { i_type = in::t_vec2; }
         template<> void named<mat4>::set_type(void) { i_type = in::t_mat4; }
         template<> void named<mat3>::set_type(void) { i_type = in::t_mat3; }
+        template<> void named<bool>::set_type(void) { i_type = in::t_bool; }
         template<> void named<float>::set_type(void) { i_type = in::t_float; }
     }
 }

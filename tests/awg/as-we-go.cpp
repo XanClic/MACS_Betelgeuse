@@ -1,4 +1,5 @@
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <list>
@@ -7,12 +8,83 @@
 
 #include <SDL/SDL.h>
 
+#include <macs/macs.hpp>
 #include <betelgeuse/betelgeuse.hpp>
 
 
 #define DOUBLE_BUF true
 
 #define RESOLUTION 512
+
+
+macs::texture *tex_from_bitmap(const char *path)
+{
+    FILE *fp = fopen(path, "r");
+    if (fp == NULL)
+        return NULL;
+
+    fseek(fp, 10, SEEK_SET);
+    uint32_t ofs;
+    fread(&ofs, sizeof(ofs), 1, fp);
+
+    int32_t w, h;
+    fseek(fp, 4, SEEK_CUR);
+    fread(&w, sizeof(w), 1, fp);
+    fread(&h, sizeof(h), 1, fp);
+
+    uint16_t bpp;
+    fseek(fp, 2, SEEK_CUR);
+    fread(&bpp, sizeof(bpp), 1, fp);
+
+    if ((bpp != 24) && (bpp != 32))
+        return NULL;
+
+
+    bool neg_h = h < 0;
+
+    if (neg_h)
+        h = -h;
+
+    macs::formats::f2103 *buf = new macs::formats::f2103[w * h];
+
+    if (neg_h)
+    {
+        for (int y = 0; y < h; y++)
+        {
+            for (int x = 0; x < w; x++)
+            {
+                if (bpp == 24)
+                    buf[y * w + x] = macs::formats::f2103({ fgetc(fp) / 255.f, fgetc(fp) / 255.f, fgetc(fp) / 255.f, 0.f });
+                else
+                    buf[y * w + x] = macs::formats::f2103({ fgetc(fp) / 255.f, fgetc(fp) / 255.f, fgetc(fp) / 255.f, fgetc(fp) / 255.f });
+            }
+        }
+    }
+    else
+    {
+        for (int y = h - 1; y >= 0; y--)
+        {
+            for (int x = 0; x < w; x++)
+            {
+                if (bpp == 24)
+                    buf[y * w + x] = macs::formats::f2103({ fgetc(fp) / 255.f, fgetc(fp) / 255.f, fgetc(fp) / 255.f, 0.f });
+                else
+                    buf[y * w + x] = macs::formats::f2103({ fgetc(fp) / 255.f, fgetc(fp) / 255.f, fgetc(fp) / 255.f, fgetc(fp) / 255.f });
+            }
+        }
+    }
+
+    fclose(fp);
+
+
+    macs::texture *t = new macs::texture("color_tex", w, h);
+    t->write(buf);
+
+    delete[] buf;
+
+
+    return t;
+}
 
 
 int main(void)
@@ -50,6 +122,8 @@ int main(void)
         "    return t1;\n\n"
         "return t2;",
 
+        "return vec2(1. - (atan(point.z, point.x) + 3.141592) / 6.283185, acos(point.y) / 3.141592);",
+
         "return point;"
     );
 
@@ -57,6 +131,9 @@ int main(void)
     rts.new_object_type(&sphere);
 
     betelgeuse::instance *spi = sphere.instantiate();
+
+    spi->mat.color.tex = tex_from_bitmap("tests/awg/earth.bmp");
+    spi->mat.color_texed = true;
 
 
     struct timeval tv_start, tv_end, tv_cur;
@@ -94,7 +171,7 @@ int main(void)
         *lgt1.color = macs::types::vec3(1.f, sinf(usecs_gone * static_cast<float>(M_PI) / 2000000.f) * .375f + .625f,
                                              sinf(usecs_gone * static_cast<float>(M_PI) / 2000000.f) * .500f + .500f);
 
-        spi->mat.r = sinf(usecs_gone * static_cast<float>(M_PI) / 8000000.f) * .49f + .51f;
+        spi->mat.rp.flat[0] = sinf(usecs_gone * static_cast<float>(M_PI) / 8000000.f) * .49f + .51f;
 
         spi->trans = macs::types::mat4();
         spi->trans.translate(macs::types::vec3(sinf(usecs_gone * static_cast<float>(M_PI) / 1000000.f),

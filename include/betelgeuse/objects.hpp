@@ -79,12 +79,14 @@ namespace betelgeuse
              * Object type constructor.
              *
              * @param min_isct Function body to find the first intersection.
+             * @param uv Function body to return a UV coordinate when given an
+             *           intersection point.
              * @param norm Function body to return a surface normal when given
              *             an intersection point.
              * @param tang Function body to return a surface tangent when given
              *             an intersection point.
              */
-            object(const char *min_isct, const char *norm, const char *tang = NULL);
+            object(const char *min_isct, const char *uv, const char *norm, const char *tang = NULL);
             /// Basic deconstructor.
             ~object(void);
 
@@ -106,14 +108,27 @@ namespace betelgeuse
             macs::types::named<macs::types::mat4> cur_inv_trans;
             /// Current normal matrix object.
             macs::types::named<macs::types::mat3> cur_normal;
+
+            /// Currend material color flat/texture switch.
+            macs::types::named<bool> cur_color_flat_tex;
+            /// Currend material ambient color flat/texture switch.
+            macs::types::named<bool> cur_ambient_flat_tex;
+            /// Currend material roughness/isotropy flat/texture switch.
+            macs::types::named<bool> cur_rp_flat_tex;
+
             /// Current material color object.
-            macs::types::named<macs::types::vec3> cur_color;
+            macs::types::named<macs::types::vec3> cur_color_flat;
             /// Current material ambient color object.
-            macs::types::named<macs::types::vec3> cur_ambient;
-            /// Current material roughness object.
-            macs::types::named<float> cur_r;
-            /// Current material isotropy object.
-            macs::types::named<float> cur_p;
+            macs::types::named<macs::types::vec3> cur_ambient_flat;
+            /// Current material roughness/isotropy object.
+            macs::types::named<macs::types::vec2> cur_rp_flat;
+
+            /// Current material color texture.
+            macs::texture *cur_color_tex;
+            /// Current material ambient color texture.
+            macs::texture *cur_ambient_tex;
+            /// Current material roughness/isotropy texture.
+            macs::texture *cur_rp_tex;
 
             /// List of available instances.
             std::list<instance *> insts;

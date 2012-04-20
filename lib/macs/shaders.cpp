@@ -205,6 +205,10 @@ void prg_uniform::operator=(const in *o) throw(exc::invalid_type, exc::texture_n
             glUniform3fv(id, 1, (**static_cast<const named<vec3> *>(o)).d);
             return;
 
+        case in::t_vec2:
+            glUniform2fv(id, 1, (**static_cast<const named<vec2> *>(o)).d);
+            return;
+
         case in::t_mat4:
             glUniformMatrix4fv(id, 1, false, (**static_cast<const named<mat4> *>(o)).d);
             return;
@@ -215,6 +219,10 @@ void prg_uniform::operator=(const in *o) throw(exc::invalid_type, exc::texture_n
 
         case in::t_float:
             glUniform1f(id, **static_cast<const named<float> *>(o));
+            return;
+
+        case in::t_bool:
+            glUniform1i(id, **static_cast<const named<bool> *>(o));
             return;
     }
 
