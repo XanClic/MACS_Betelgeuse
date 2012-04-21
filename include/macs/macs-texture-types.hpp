@@ -110,12 +110,25 @@ namespace macs
     };
 
 
+    /**
+     * Texture replacement class.
+     *
+     * If you want to assign textures to a render pass object on runtime (i.e.,
+     * after initialization), you have to allocate a slot beforehand. This is
+     * done by giving a pointer to such a replacement, which you may free after
+     * render pass initialization.
+     */
     class texture_placebo: public textures_in
     {
         public:
+            /**
+             * Creates a texture replacement. The name given is the name of the
+             * textures you want to assign to the render pass object later on.
+             */
             texture_placebo(const char *name)
             { i_type = in::t_texture_placebo; i_name = strdup(name); }
 
+            /// Basic deconstructor.
             ~texture_placebo(void)
             { free(const_cast<char *>(i_name)); }
     };

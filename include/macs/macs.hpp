@@ -132,11 +132,16 @@ namespace macs
              * executed before the rendering, use it between the call of
              * this function and the call of the <tt>execute()</tt> function.
              * Such modifications include clearing output buffers.
-             *
-             * @sa void render::execute(void)
              */
             void prepare(void);
 
+            /**
+             * Binds all input object. This has to be called before execution.
+             * If you want to execute the same render pass object all over
+             * while altering the input object values for each pass, you have
+             * to call <tt>prepare()</tt> just once, but this method every
+             * time before execution and after modification.
+             */
             void bind_input(void);
 
 
@@ -151,11 +156,6 @@ namespace macs
              *       limited hardware ressources, it might be neccessary to do
              *       more than one physical render pass, especially if you use
              *       more output textures than physically allowed.
-             *
-             * @note If you want to execute the same render pass object all over
-             *       while altering the input object values (non-textures only)
-             *       for each pass, you may do exactly that (you have to call
-             *       <tt>prepare()</tt> just once).
              *
              * @sa int max_output_textures(void)
              */
