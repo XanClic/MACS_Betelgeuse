@@ -65,6 +65,9 @@ namespace macs
         /// Color buffer attachment count for FBOs
         extern int col_attach;
 
+        /// Minimum of draw_bufs and col_attach (number of output units).
+        extern int out_units;
+
         /// Texture units available
         extern int tex_units;
 
@@ -145,6 +148,9 @@ namespace macs
             private:
                 /// OpenGL shader ID
                 unsigned id;
+
+                /// Shader source copy
+                char *src;
         };
 
 

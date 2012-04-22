@@ -131,6 +131,13 @@ namespace macs
                 t_texture,
 
                 /**
+                 * 2D texture place holder.
+                 *
+                 * @sa macs::texture_placebo
+                 */
+                t_texture_placebo,
+
+                /**
                  * Combined stencil/depth buffer.
                  *
                  * @sa macs::stencildepth

@@ -14,7 +14,7 @@
 
 #define DOUBLE_BUF true
 
-#define RESOLUTION 1024
+#define RESOLUTION 512
 
 
 macs::texture *tex_from_bitmap(const char *path)
@@ -126,18 +126,49 @@ extern "C" int main(int argc, char *argv[])
         "    return t1;\n\n"
         "return t2;",
 
+        "if (length(cross(dir, start)) > length(dir))\n"
+        "    return false;\n\n"
+        "float a =  dot(dir  , dir  );\n"
+        "float b =  dot(start, dir  )       / a;\n"
+        "float c = (dot(start, start) - 1.) / a;\n\n"
+        "float sq = sqrt(b * b - c);\n"
+        "float t1 = -sq - b, t2 = sq - b;\n\n"
+        "return (((t1 > 0.) && (t1 < 1.)) || ((t2 > 0.) && (t2 < 1.)));",
+
         "return vec2(1. - (atan(point.z, point.x) + 3.141592) / 6.283185, acos(point.y) / 3.141592);",
 
         "return point;"
     );
 
+    betelgeuse::object quad(
+        "float i = -start.z / dir.z;\n\n"
+        "if ((i < 0.) || (abs(start.x + i * dir.x) > .5) || (abs(start.y + i * dir.y) > .5))\n"
+        "    discard;\n\n"
+        "return i;",
+
+        "float i = -start.z / dir.z;\n\n"
+        "return (i > 0.) && (i < 1.) && (abs(start.x + i * dir.x) <= .5) && (abs(start.y + i * dir.y) < .5);",
+
+        "return vec2(point.x + .5, point.y + .5);",
+
+        "return vec3(0., 0., 1.);"
+    );
 
     rts.new_object_type(&sphere);
+    rts.new_object_type(&quad);
+
 
     betelgeuse::instance *spi = sphere.instantiate();
 
     spi->mat.color.tex = tex_from_bitmap("tests/awg/earth.bmp");
     spi->mat.color_texed = true;
+
+
+    betelgeuse::instance *qui = quad.instantiate();
+
+    qui->trans.translate(macs::types::vec3(0.f, 0.f, -10.f));
+    qui->trans.scale(macs::types::vec3(20.f, 20.f, 1.f));
+    qui->update_transformation();
 
 
     struct timeval tv_start, tv_end, tv_cur;
@@ -170,8 +201,6 @@ extern "C" int main(int argc, char *argv[])
         gettimeofday(&tv_cur, NULL);
 
         unsigned long long usecs_gone = (tv_cur.tv_sec % 24) * 1000000ULL + tv_cur.tv_usec;
-
-        usecs_gone = 11300000ULL;
 
 
         *lgt1.color = macs::types::vec3(1.f, sinf(usecs_gone * static_cast<float>(M_PI) / 2000000.f) * .375f + .625f,

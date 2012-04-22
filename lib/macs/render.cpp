@@ -33,7 +33,7 @@ render::render(std::initializer_list<const in *> input, std::initializer_list<co
             fbos++;
 
 
-    fbos = (fbos + internals::draw_bufs - 1) / internals::draw_bufs;
+    fbos = (fbos + internals::out_units - 1) / internals::out_units;
 
     if (fbos < 1)
         fbos = 1;
@@ -133,7 +133,8 @@ render::render(std::initializer_list<const in *> input, std::initializer_list<co
         switch (obj->o_type)
         {
             case out::t_texture:
-                if (i == internals::draw_bufs)
+            {
+                if (i == internals::out_units)
                 {
                     i = 0;
                     glBindFramebuffer(GL_FRAMEBUFFER, ids[++cur_fbo_i]);
@@ -148,6 +149,24 @@ render::render(std::initializer_list<const in *> input, std::initializer_list<co
                 final_src[cur_fbo_i] += std::string("#define ") + obj->o_name + " gl_FragData[" + tmp + "]\n";
 
                 break;
+            }
+
+            case out::t_texture_placebo:
+            {
+                if (i == internals::out_units)
+                {
+                    i = 0;
+                    glBindFramebuffer(GL_FRAMEBUFFER, ids[++cur_fbo_i]);
+                }
+
+                dbgprintf("[rnd%u] Incomplete texture “%s” is on attachment %i.\n", ids[cur_fbo_i], obj->o_name, i);
+
+                char tmp[6]; // FIXME: Overflow
+                sprintf(tmp, "%i", i++);
+                final_src[cur_fbo_i] += std::string("#define ") + obj->o_name + " gl_FragData[" + tmp + "]\n";
+
+                break;
+            }
 
             case out::t_stencildepth:
                 for (int j = 0; j < fbos; j++)
@@ -192,7 +211,7 @@ render::render(std::initializer_list<const in *> input, std::initializer_list<co
         {
             final_src[j] += std::string(obj->o_name) + " = " + va_arg(va, const char *) + ";\n";
 
-            if (++i == internals::draw_bufs)
+            if (++i == internals::out_units)
             {
                 i = 0;
                 j++;
@@ -245,7 +264,8 @@ render::render(std::initializer_list<const in *> input, std::initializer_list<co
         if (in->i_type != in::t_texture_placebo)
             inp_objs.push_back(in);
 
-    out_objs.insert(out_objs.begin(), output);
+    for (auto out: output)
+        out_objs.push_back((out->o_type == out::t_texture_placebo) ? new texture_placebo(out->o_name) : out);
 }
 
 render::~render(void)
@@ -253,6 +273,13 @@ render::~render(void)
     dbgprintf("[rnd%u..] Deleting render objects.\n", ids[0]);
 
     glDeleteFramebuffers(fbos, ids);
+
+
+    /*
+    for (auto out: out_objs)
+        if (out->o_type == out::t_texture_placebo)
+            delete out;
+    */
 
 
     delete[] ids;
@@ -267,19 +294,19 @@ void render::bind_fbo(int i)
     glBindFramebuffer(GL_FRAMEBUFFER, ids[i]);
 
 
-    GLenum *bufs = new GLenum[internals::draw_bufs];
+    GLenum *bufs = new GLenum[internals::out_units];
     int j = 0, k = 0;
 
     for (auto obj: out_objs)
     {
-        if (obj->o_type == out::t_texture)
+        if (obj->o_type != out::t_stencildepth)
         {
             if (k == i)
                 bufs[j] = GL_COLOR_ATTACHMENT0 + j;
 
             j++;
 
-            if (j == internals::draw_bufs)
+            if (j == internals::out_units)
             {
                 if (++k > i)
                     break;
@@ -355,7 +382,7 @@ void render::bind_input(void)
 
     i = 0;
     for (auto obj: inp_objs)
-        if (!assigned[i++] && ((obj->i_type == in::t_texture) || (obj->i_type == in::t_texture_array)))
+        if (((obj->i_type == in::t_texture) || (obj->i_type == in::t_texture_array)) && !assigned[i++])
             *internals::tmu_mgr += static_cast<const textures_in *>(obj);
 
     delete[] assigned;
@@ -468,7 +495,40 @@ void render::operator<<(const texture *tex)
 
 void render::operator>>(const texture *tex)
 {
+    bool found = false;
+
+    int i = 0;
+
+    for (auto obj: out_objs)
+    {
+        if (!strcmp(obj->o_name, tex->o_name))
+        {
+            found = true;
+
+            glBindFramebuffer(GL_FRAMEBUFFER, ids[i / internals::out_units]);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + (i % internals::out_units), GL_TEXTURE_2D, tex->id, 0);
+
+            if (i % internals::out_units)
+                freshly_prepared = false;
+
+            break;
+        }
+
+
+        if (obj->o_type != out::t_stencildepth)
+            i++;
+    }
+
+    if (!found)
+        throw exc::tex_nd;
+
+    out_objs.push_back(tex);
+}
+
+void render::operator-=(const texture *tex)
+{
     inp_objs.remove(tex);
+    out_objs.remove(tex);
 }
 
 

@@ -79,6 +79,10 @@ namespace betelgeuse
              * Object type constructor.
              *
              * @param min_isct Function body to find the first intersection.
+             * @param isct Function body to return true iff a given line
+             *             intersects (given by <tt>start</tt> and <tt>dir</tt>
+             *             <tt>vec3</tt> parameters
+             *             (<tt>end = start + dir</tt>).
              * @param uv Function body to return a UV coordinate when given an
              *           intersection point.
              * @param norm Function body to return a surface normal when given
@@ -86,7 +90,7 @@ namespace betelgeuse
              * @param tang Function body to return a surface tangent when given
              *             an intersection point.
              */
-            object(const char *min_isct, const char *uv, const char *norm, const char *tang = NULL);
+            object(const char *min_isct, const char *isct, const char *uv, const char *norm, const char *tang = NULL);
             /// Basic deconstructor.
             ~object(void);
 
@@ -132,6 +136,12 @@ namespace betelgeuse
 
             /// List of available instances.
             std::list<instance *> insts;
+
+            /// Global source code for shadowing (line_intersects)
+            char *global_shadow_src;
+
+            /// Shadow rendering object.
+            macs::render *shadow;
     };
 }
 

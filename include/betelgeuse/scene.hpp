@@ -23,6 +23,9 @@ namespace betelgeuse
             /// Basic constructor.
             scene(void);
 
+            /// Basic destructor.
+            ~scene(void);
+
             /**
              * Sets the horizontal field of view.
              *
@@ -64,6 +67,8 @@ namespace betelgeuse
             void render_view(void);
             /// Renders object intersection points.
             void render_intersection(void);
+            /// Creates the shadow maps.
+            void render_shadows(void);
             /// Does the light shading.
             void render_shading(void);
 
@@ -116,6 +121,9 @@ namespace betelgeuse
 
             /// Initial view rendering object.
             macs::render *rnd_view;
+
+            /// Current light source position (for shadow calculation).
+            macs::types::named<macs::types::vec4> cur_light_pos;
     };
 }
 

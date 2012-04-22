@@ -23,7 +23,7 @@ void macs::opengl_version(int &major, int &minor)
 
 int macs::max_output_textures(void)
 {
-    return macs::internals::draw_bufs;
+    return macs::internals::out_units;
 }
 
 int macs::max_input_textures(void)

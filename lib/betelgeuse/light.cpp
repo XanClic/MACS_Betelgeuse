@@ -14,7 +14,8 @@ light::light(const char *atten_fnc):
     limit_angle_cos("limit_angle", -1.f),
     atten_par("attenuation_parameter", 0.f),
     shade(NULL),
-    atten_func(atten_fnc)
+    atten_func(atten_fnc),
+    shadow_map("shadow_map")
 {
 }
 

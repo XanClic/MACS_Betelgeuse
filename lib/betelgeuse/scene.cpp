@@ -33,7 +33,9 @@ scene::scene(void):
     ray_stt("ray_starting_points"), ray_dir("ray_directions"),
     glob_isct("global_intersection"), norm_map("normal_map"), tang_map("tangent_map"),
     color_map("color_map"), ambient_map("ambient_map"), rpuv_map("rpuv_map"),
-    asten("stencil")
+    asten("stencil"),
+
+    cur_light_pos("light_pos", vec4())
 
 {
     rnd_view = new macs::render(
@@ -54,6 +56,11 @@ scene::scene(void):
     );
 
     rnd_view->use_depth(true, render::always);
+}
+
+scene::~scene(void)
+{
+    delete rnd_view;
 }
 
 
@@ -113,6 +120,26 @@ void scene::new_object_type(object *obj)
     );
 
     obj->isct->use_depth(true);
+
+
+    texture_placebo shadow_map_plac("shadow_map");
+
+    obj->shadow = new macs::render(
+        { &glob_isct, &cur_light_pos, &asten, &obj->cur_inv_trans },
+        { &shadow_map_plac },
+
+        obj->global_shadow_src,
+
+        "if (stencil.x < .5)\n"
+        "    discard;\n\n" // nobody cares anyway
+        "vec4 dir_vec = global_intersection - light_pos;\n",
+
+        "line_intersects((mat_inverse_transformation * light_pos).xyz,"
+                        "(mat_inverse_transformation * dir_vec).xyz * .95)" // FIXME
+                        "? vec4(1.f, 0.f, 0.f, 0.f) : vec4(0.f, 0.f, 0.f, 0.f)"
+    );
+
+    obj->shadow->blend_func(render::use, render::use);
 }
 
 void scene::add_light(light *lgt)
@@ -123,13 +150,13 @@ void scene::add_light(light *lgt)
     asprintf(&global_src, "float attenuation(float distance)\n{\n%s\n}", lgt->atten_func);
 
     lgt->shade = new macs::render(
-        { &glob_isct, &ray_dir, &norm_map, &tang_map, &color_map, &ambient_map, &rpuv_map, &asten,
+        { &glob_isct, &ray_dir, &norm_map, &tang_map, &color_map, &ambient_map, &rpuv_map, &asten, &lgt->shadow_map,
           &lgt->position, &lgt->direction, &lgt->color, &lgt->distr_exp, &lgt->limit_angle_cos, &lgt->atten_par },
         { &output },
 
         global_src,
 
-        "if (stencil.x < .5)\n"
+        "if ((stencil.x < .5) || (shadow_map.x > .5))\n"
         "    discard;\n\n"
         "vec3 g = global_intersection.xyz;\n"
         "vec4 ni = normal_map;\n"
@@ -186,6 +213,7 @@ void scene::render(void)
 {
     render_view();
     render_intersection();
+    render_shadows();
     render_shading();
 }
 
@@ -232,11 +260,42 @@ void scene::render_intersection(void)
             obj->isct->execute();
 
             if (i->mat.color_texed)
-                *obj->isct >> i->mat.color.tex;
+                *obj->isct -= i->mat.color.tex;
             if (i->mat.ambient_texed)
-                *obj->isct >> i->mat.ambient.tex;
+                *obj->isct -= i->mat.ambient.tex;
             if (i->mat.rp_texed)
-                *obj->isct >> i->mat.rp.tex;
+                *obj->isct -= i->mat.rp.tex;
+        }
+    }
+}
+
+void scene::render_shadows(void)
+{
+    bool first_instance = true;
+
+    for (auto obj: objs)
+    {
+        obj->shadow->prepare();
+        obj->shadow->bind_input();
+
+        for (auto i: obj->insts)
+        {
+            for (auto lgt: lgts)
+            {
+                *obj->shadow >> &lgt->shadow_map;
+
+                if (first_instance)
+                    obj->shadow->clear_output({ 0.f, 0.f, 0.f, 0.f });
+
+                *cur_light_pos = *lgt->position;
+                *obj->cur_inv_trans = i->inv_trans;
+
+                obj->shadow->execute();
+
+                *obj->shadow -= &lgt->shadow_map;
+            }
+
+            first_instance = false;
         }
     }
 }

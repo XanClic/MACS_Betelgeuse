@@ -6,6 +6,7 @@ namespace macs
     {
         int ogl_maj, ogl_min;
         int draw_bufs, col_attach;
+        int out_units;
         int tex_units;
 
         int width, height;

@@ -60,6 +60,9 @@ bool macs::init(int width, int height)
     }
 
 
+    out_units = (col_attach < draw_bufs) ? col_attach : draw_bufs;
+
+
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &tex_units);
 
     dbgprintf("%i texture units encountered.\n", tex_units);

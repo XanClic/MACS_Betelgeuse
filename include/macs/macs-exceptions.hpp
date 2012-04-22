@@ -89,6 +89,21 @@ namespace macs
         }
         /// Shader compilation/linking failed exception instance
         shader_fail;
+
+        /**
+         * Texture not declared exception. Thrown if a texture is tried to be
+         * defined, but has not been declared before (by a texture replacement
+         * object).
+         */
+        static class texture_not_declared: std::exception
+        {
+            public:
+                /// Returns an error description.
+                virtual const char *what(void) const throw()
+                { return "Requested texture has not been declared before."; }
+        }
+        /// Texture not declared exception instance
+        tex_nd;
     }
 }
 

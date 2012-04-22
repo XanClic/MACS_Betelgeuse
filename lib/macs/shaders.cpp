@@ -31,15 +31,19 @@ shader::~shader(void)
 {
     glDeleteShader(id);
 
+    delete src;
+
     dbgprintf("[sh%u] Deleted.\n", id);
 }
 
 
-void shader::load(const char *src)
+void shader::load(const char *srcb)
 {
-    glShaderSource(id, 1, &src, NULL);
+    glShaderSource(id, 1, &srcb, NULL);
 
     dbgprintf("[sh%u] Loaded shader from source\n", id);
+
+    src = strdup(srcb);
 }
 
 
@@ -55,6 +59,8 @@ void shader::load(FILE *fp)
     mem[length] = 0;
 
     glShaderSource(id, 1, const_cast<const char **>(&mem), NULL);
+
+    src = strdup(mem);
 
     delete mem;
 
@@ -88,7 +94,10 @@ bool shader::compile(void)
         if (status == GL_TRUE)
             dbgprintf("[sh%u] Shader compile message: %s", id, msg);
         else
+        {
             fprintf(stderr, "[sh%u] Shader compile message: %s", id, msg);
+            fprintf(stderr, "[sh%u] Shader source was:\n%s\n", id, src);
+        }
 
         delete msg;
     }

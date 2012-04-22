@@ -15,7 +15,7 @@ extern void asprintf(char **dst, const char *format, ...);
 #endif
 
 
-object::object(const char *min_isct, const char *uv, const char *norm, const char *tang):
+object::object(const char *min_isct, const char *line_isct, const char *uv, const char *norm, const char *tang):
     isct(NULL),
     cur_trans("mat_transformation", mat4()),
     cur_inv_trans("mat_inverse_transformation", mat4()),
@@ -25,7 +25,8 @@ object::object(const char *min_isct, const char *uv, const char *norm, const cha
     cur_rp_flat_tex("rp_switch", false),
     cur_color_flat("color_flat", vec3()),
     cur_ambient_flat("ambient_flat", vec3()),
-    cur_rp_flat("rp_flat", vec2())
+    cur_rp_flat("rp_flat", vec2()),
+    shadow(NULL)
 {
     if (tang != NULL)
         asprintf(&global_src, "#define HAS_TANGENTS\n"
@@ -39,13 +40,17 @@ object::object(const char *min_isct, const char *uv, const char *norm, const cha
                               "vec2 get_uv(vec3 point)\n{\n%s\n}\n"
                               "vec3 get_normal(vec3 point)\n{\n%s\n}\n",
                               min_isct, uv, norm);
+
+    asprintf(&global_shadow_src, "bool line_intersects(vec3 start, vec3 dir)\n{\n%s\n}", line_isct);
 }
 
 object::~object(void)
 {
     free(global_src);
+    free(global_shadow_src);
 
     delete isct;
+    delete shadow;
 }
 
 

@@ -118,7 +118,7 @@ namespace macs
      * done by giving a pointer to such a replacement, which you may free after
      * render pass initialization.
      */
-    class texture_placebo: public textures_in
+    class texture_placebo: public textures_in, public textures_out
     {
         public:
             /**
@@ -126,7 +126,7 @@ namespace macs
              * textures you want to assign to the render pass object later on.
              */
             texture_placebo(const char *name)
-            { i_type = in::t_texture_placebo; i_name = strdup(name); }
+            { i_type = in::t_texture_placebo; o_type = out::t_texture_placebo; i_name = o_name = strdup(name); }
 
             /// Basic deconstructor.
             ~texture_placebo(void)
@@ -266,7 +266,7 @@ namespace macs
              *       values before transferring them to a new texture. Thus it
              *       should be used for debugging purposes only.
              */
-            class texture *depth_to_texture(const char *name);
+            texture *depth_to_texture(const char *name);
 
 
             friend class render;

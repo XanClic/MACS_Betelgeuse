@@ -323,10 +323,12 @@ namespace macs
             void blend_func(blend_fact src, blend_fact dst);
 
 
-            /// Appends a texture.
+            /// Appends a texture to input.
             void operator<<(const texture *tex);
-            /// Removes a texture.
+            /// Appends a texture to output.
             void operator>>(const texture *tex);
+            /// Removes a texture.
+            void operator-=(const texture *tex);
 
 
         private:

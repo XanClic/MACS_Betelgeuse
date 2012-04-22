@@ -52,6 +52,9 @@ namespace betelgeuse
 
             /// Attenuation function source code.
             const char *atten_func;
+
+            /// Shadow map.
+            macs::texture shadow_map;
     };
 }
 
