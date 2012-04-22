@@ -10,6 +10,11 @@ using namespace betelgeuse;
 using namespace macs::types;
 
 
+#ifdef __WIN32
+extern void asprintf(char **dst, const char *format, ...);
+#endif
+
+
 object::object(const char *min_isct, const char *uv, const char *norm, const char *tang):
     isct(NULL),
     cur_trans("mat_transformation", mat4()),

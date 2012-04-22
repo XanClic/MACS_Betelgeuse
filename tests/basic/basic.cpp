@@ -1,10 +1,14 @@
-#include <SDL/SDL.h>
+#include "SDL.h"
 
 #include <macs/macs.hpp>
 
 
-int main(void)
+extern "C" int main(int argc, char *argv[])
 {
+    (void)argc;
+    (void)argv;
+
+
     SDL_Init(SDL_INIT_VIDEO);
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);

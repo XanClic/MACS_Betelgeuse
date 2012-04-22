@@ -1,5 +1,3 @@
-#include <GL/gl.h>
-
 #include "macs.hpp"
 #include "macs-internals.hpp"
 

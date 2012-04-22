@@ -6,7 +6,7 @@
 #include <string>
 #include <sys/time.h>
 
-#include <SDL/SDL.h>
+#include "SDL.h"
 
 #include <macs/macs.hpp>
 #include <betelgeuse/betelgeuse.hpp>
@@ -14,7 +14,7 @@
 
 #define DOUBLE_BUF true
 
-#define RESOLUTION 512
+#define RESOLUTION 1024
 
 
 macs::texture *tex_from_bitmap(const char *path)
@@ -87,8 +87,12 @@ macs::texture *tex_from_bitmap(const char *path)
 }
 
 
-int main(void)
+extern "C" int main(int argc, char *argv[])
 {
+    (void)argc;
+    (void)argv;
+
+
     SDL_Init(SDL_INIT_VIDEO);
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, DOUBLE_BUF);
@@ -165,7 +169,9 @@ int main(void)
     {
         gettimeofday(&tv_cur, NULL);
 
-        unsigned long usecs_gone = (tv_cur.tv_sec % 24) * 1000000UL + tv_cur.tv_usec;
+        unsigned long long usecs_gone = (tv_cur.tv_sec % 24) * 1000000ULL + tv_cur.tv_usec;
+
+        usecs_gone = 11300000ULL;
 
 
         *lgt1.color = macs::types::vec3(1.f, sinf(usecs_gone * static_cast<float>(M_PI) / 2000000.f) * .375f + .625f,

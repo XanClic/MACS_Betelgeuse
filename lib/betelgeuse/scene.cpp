@@ -11,6 +11,11 @@ using namespace macs;
 using namespace macs::types;
 
 
+#ifdef __WIN32
+extern void asprintf(char **dst, const char *format, ...);
+#endif
+
+
 scene::scene(void):
     output("output"),
 

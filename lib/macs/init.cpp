@@ -3,8 +3,6 @@
 #include <cstdlib>
 #include <cstring>
 
-#include <GL/gl.h>
-
 #include "macs.hpp"
 #include "macs-internals.hpp"
 
@@ -14,11 +12,22 @@ using namespace macs::internals;
 
 bool macs::init(int width, int height)
 {
+#ifdef __WIN32
+    glewInit();
+#endif
+
+
     // Check whether the system meets the requirements
 
 
     glGetIntegerv(GL_MAJOR_VERSION, &ogl_maj);
     glGetIntegerv(GL_MINOR_VERSION, &ogl_min);
+
+#ifdef __WIN32
+    // FIXME
+    if (!ogl_maj)
+        ogl_maj = 2;
+#endif
 
     dbgprintf("OpenGL version %i.%i found.\n", ogl_maj, ogl_min);
 

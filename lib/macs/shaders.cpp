@@ -1,9 +1,6 @@
 #include <cstddef>
 #include <cstdio>
 
-#include <GL/gl.h>
-#include <GL/glext.h>
-
 #include "macs.hpp"
 #include "macs-internals.hpp"
 

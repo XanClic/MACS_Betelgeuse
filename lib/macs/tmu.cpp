@@ -1,8 +1,6 @@
 #include <cstdlib>
 #include <cstring>
 
-#include <GL/gl.h>
-
 #include "macs.hpp"
 #include "macs-internals.hpp"
 

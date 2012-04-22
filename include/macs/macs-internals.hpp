@@ -11,7 +11,17 @@
 
 #include <cstdio>
 
+
+#ifdef __WIN32
+#include <GL/glew.h>
+#endif
+
 #include <GL/gl.h>
+
+#ifndef __WIN32
+#include <GL/glext.h>
+#endif
+
 
 #include "macs-config.hpp"
 #include "macs-exceptions.hpp"
