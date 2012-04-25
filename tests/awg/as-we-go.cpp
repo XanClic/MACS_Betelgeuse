@@ -77,7 +77,7 @@ macs::texture *tex_from_bitmap(const char *path)
     fclose(fp);
 
 
-    macs::texture *t = new macs::texture("color_tex", false, w, h);
+    macs::texture *t = new macs::texture("color0_tex", false, w, h);
     t->write(buf);
 
     delete[] buf;
@@ -160,8 +160,8 @@ extern "C" int main(int argc, char *argv[])
 
     betelgeuse::instance *spi = sphere.instantiate();
 
-    spi->mat.color.tex = tex_from_bitmap("tests/awg/earth.bmp");
-    spi->mat.color_texed = true;
+    spi->mat.layer[0].color.tex = tex_from_bitmap("tests/awg/earth.bmp");
+    spi->mat.layer[0].color_texed = true;
 
 
     betelgeuse::instance *qui = quad.instantiate();
@@ -206,14 +206,13 @@ extern "C" int main(int argc, char *argv[])
         *lgt1.color = macs::types::vec3(1.f, sinf(usecs_gone * static_cast<float>(M_PI) / 2000000.f) * .375f + .625f,
                                              sinf(usecs_gone * static_cast<float>(M_PI) / 2000000.f) * .500f + .500f);
 
-        spi->mat.rp.flat[0] = sinf(usecs_gone * static_cast<float>(M_PI) / 8000000.f) * .49f + .51f;
+        spi->mat.layer[0].rp.flat[0] = sinf(usecs_gone * static_cast<float>(M_PI) / 8000000.f) * .49f + .51f;
 
         spi->trans = macs::types::mat4();
         spi->trans.translate(macs::types::vec3(sinf(usecs_gone * static_cast<float>(M_PI) / 1000000.f),
                                                cosf(usecs_gone * static_cast<float>(M_PI) / 1000000.f),
                                                -5.f));
         spi->trans.rotate(usecs_gone * static_cast<float>(M_PI) / 4000000.f, macs::types::vec3(1.f, .5f, 0.f));
-        spi->trans.scale(macs::types::vec3(1.f, 1.5f, 1.f));
         spi->update_transformation();
 
 

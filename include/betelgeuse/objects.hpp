@@ -113,26 +113,39 @@ namespace betelgeuse
             /// Current normal matrix object.
             macs::types::named<macs::types::mat3> cur_normal;
 
-            /// Currend material color flat/texture switch.
-            macs::types::named<bool> cur_color_flat_tex;
-            /// Currend material ambient color flat/texture switch.
+            /// Current material ambient color flat/texture switch.
             macs::types::named<bool> cur_ambient_flat_tex;
-            /// Currend material roughness/isotropy flat/texture switch.
-            macs::types::named<bool> cur_rp_flat_tex;
+            /// Current material mirror flat/texture switch.
+            macs::types::named<bool> cur_mirror_flat_tex;
+            /// Current material refraction flat/texture switch.
+            macs::types::named<bool> cur_refract_flat_tex;
 
-            /// Current material color object.
-            macs::types::named<macs::types::vec3> cur_color_flat;
             /// Current material ambient color object.
             macs::types::named<macs::types::vec3> cur_ambient_flat;
-            /// Current material roughness/isotropy object.
-            macs::types::named<macs::types::vec2> cur_rp_flat;
+            /// Current material mirror object.
+            macs::types::named<macs::types::vec3> cur_mirror_flat;
+            /// Current material refraction object.
+            macs::types::named<macs::types::vec4> cur_refract_flat;
 
-            /// Current material color texture.
-            macs::texture *cur_color_tex;
-            /// Current material ambient color texture.
-            macs::texture *cur_ambient_tex;
-            /// Current material roughness/isotropy texture.
-            macs::texture *cur_rp_tex;
+            /// Current material layer 0 color flat/texture switch.
+            macs::types::named<bool> cur_color0_flat_tex;
+            /// Current material layer 0 roughness/isotropy flat/texture switch.
+            macs::types::named<bool> cur_rp0_flat_tex;
+
+            /// Current material layer 0 color object.
+            macs::types::named<macs::types::vec3> cur_color0_flat;
+            /// Current material layer 0 roughness/isotropy object.
+            macs::types::named<macs::types::vec2> cur_rp0_flat;
+
+            /// Current material layer 1 color flat/texture switch.
+            macs::types::named<bool> cur_color1_flat_tex;
+            /// Current material layer 1 roughness/isotropy flat/texture switch.
+            macs::types::named<bool> cur_rp1_flat_tex;
+
+            /// Current material layer 1 color object.
+            macs::types::named<macs::types::vec3> cur_color1_flat;
+            /// Current material layer 1 roughness/isotropy object.
+            macs::types::named<macs::types::vec2> cur_rp1_flat;
 
             /// List of available instances.
             std::list<instance *> insts;

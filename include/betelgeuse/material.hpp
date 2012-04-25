@@ -19,23 +19,17 @@ namespace betelgeuse
      */
     struct material
     {
-        /// True iff color is textured
-        bool color_texed;
         /// True iff ambient lighting is textured
         bool ambient_texed;
-        /// True iff roughness/isotropy is textured
-        bool rp_texed;
+        /// True iff mirroring reflections are textured
+        bool mirror_texed;
+        /// True iff refractions are textured
+        bool refract_texed;
 
+        /// Refraction coefficient
+        float n;
 
         // unions would be nicer, they do however not work.
-
-        struct
-        {
-            /// Constant value
-            macs::types::vec3 flat;
-            /// Textured
-            macs::texture *tex;
-        } /** Main color */ color;
 
         struct
         {
@@ -47,11 +41,44 @@ namespace betelgeuse
 
         struct
         {
-            /// Constant values
-            macs::types::vec2 flat;
+            /// Constant value
+            macs::types::vec3 flat;
             /// Textured
             macs::texture *tex;
-        } /** Roughness/isotropy */ rp;
+        } /** Per-channel mirror reflection */ mirror;
+
+        struct
+        {
+            /// Constant value
+            macs::types::vec4 flat;
+            /// Textured
+            macs::texture *tex;
+        } /** Per-channel refraction, alpha is coefficient */ refract;
+
+
+        struct
+        {
+            /// True iff layer color is textured
+            bool color_texed;
+            /// True iff layer roughness/isotropy is textured
+            bool rp_texed;
+
+            struct
+            {
+                /// Constant value
+                macs::types::vec3 flat;
+                /// Textured
+                macs::texture *tex;
+            } /** Layer color */ color;
+
+            struct
+            {
+                /// Constant value
+                macs::types::vec2 flat;
+                /// Textured
+                macs::texture *tex;
+            } /** Layer roughness/isotropy */ rp;
+        } /** Surface layers */ layer[2];
     };
 }
 

@@ -32,7 +32,8 @@ scene::scene(void):
 
     ray_stt("ray_starting_points"), ray_dir("ray_directions"),
     glob_isct("global_intersection"), norm_map("normal_map"), tang_map("tangent_map"),
-    color_map("color_map"), ambient_map("ambient_map"), rpuv_map("rpuv_map"),
+    ambient_map("ambient_map"), mirror_map("mirror_map"), refract_map("refract_map"), uv_map("uv_map"),
+    color0_map("color0_map"), color1_map("color1_map"), rp_map("rp_map"),
     asten("stencil"),
 
     cur_light_pos("light_pos", vec4())
@@ -79,13 +80,20 @@ void scene::new_object_type(object *obj)
 {
     objs.push_back(obj);
 
-    texture_placebo col_plac("color_tex"), amb_plac("ambient_tex"), rp_plac("rp_tex");
+    texture_placebo amb_plac("ambient_tex"), mir_plac("mirror_tex"), ref_plac("refract_tex");
+    texture_placebo co0_plac("color0_tex"), rp0_plac("rp0_tex"), co1_plac("color1_tex"), rp1_plac("rp1_tex");
 
     obj->isct = new macs::render(
         { &ray_stt, &ray_dir, &zfar, &obj->cur_trans, &obj->cur_inv_trans, &obj->cur_normal,
-          &obj->cur_color_flat_tex, &obj->cur_ambient_flat_tex, &obj->cur_rp_flat_tex,
-          &obj->cur_color_flat, &obj->cur_ambient_flat, &obj->cur_rp_flat, &col_plac, &amb_plac, &rp_plac },
-        { &glob_isct, &norm_map, &tang_map, &color_map, &ambient_map, &rpuv_map, &asten, &sd },
+          &obj->cur_ambient_flat_tex, &obj->cur_mirror_flat_tex, &obj->cur_refract_flat_tex,
+          &obj->cur_color0_flat_tex, &obj->cur_rp0_flat_tex,
+          &obj->cur_color1_flat_tex, &obj->cur_rp1_flat_tex,
+          &obj->cur_ambient_flat, &obj->cur_mirror_flat, &obj->cur_refract_flat,
+          &obj->cur_color0_flat, &obj->cur_rp0_flat,
+          &obj->cur_color1_flat, &obj->cur_rp1_flat,
+          &amb_plac, &mir_plac, &ref_plac, &co0_plac, &rp0_plac, &co1_plac, &rp1_plac },
+        { &glob_isct, &norm_map, &tang_map, &ambient_map, &mirror_map, &refract_map, &uv_map,
+          &color0_map, &color1_map, &rp_map, &asten, &sd },
 
         obj->global_src,
 
@@ -110,12 +118,17 @@ void scene::new_object_type(object *obj)
         "else if (ndy < 0.)\n"
         "    n = -n;\n\n"
         "vec2 uv = get_uv(local_coord);\n\n"
-        "vec3 point_color   = color_switch   ? texture2D(raw_color_tex,   uv).xyz : color_flat;\n"
         "vec3 point_ambient = ambient_switch ? texture2D(raw_ambient_tex, uv).xyz : ambient_flat;\n"
-        "vec2 rp            = rp_switch      ? texture2D(raw_rp_tex,      uv).xy  : rp_flat;",
+        "vec3 point_mirror  = mirror_switch  ? texture2D(raw_mirror_tex,  uv).xyz : mirror_flat;\n"
+        "vec4 point_refract = refract_switch ? texture2D(raw_refract_tex, uv)     : refract_flat;\n"
+        "vec3 point_color0  = color0_switch  ? texture2D(raw_color0_tex,  uv).xyz : color0_flat;\n"
+        "vec2 point_rp0     = rp0_switch     ? texture2D(raw_rp0_tex,     uv).xy  : rp0_flat;\n"
+        "vec3 point_color1  = color1_switch  ? texture2D(raw_color1_tex,  uv).xyz : color1_flat;\n"
+        "vec2 point_rp1     = rp1_switch     ? texture2D(raw_rp1_tex,     uv).xy  : rp1_flat;",
 
         "global_coord", "vec4(n, ndy)", "vec4(t, 0.)",
-        "vec4(point_color, 0.)", "vec4(point_ambient, 0.)", "vec4(rp, 0., 0.)",
+        "vec4(point_ambient, 0.)", "vec4(point_mirror, 0.)", "point_refract", "vec4(uv, 0., 0.)",
+        "vec4(point_color0, 0.)", "vec4(point_color1, 0.)", "vec4(point_rp0, point_rp1)",
         "vec4(1., 0., 0., 0.)", "par / zfar"
     );
 
@@ -150,8 +163,9 @@ void scene::add_light(light *lgt)
     asprintf(&global_src, "float attenuation(float distance)\n{\n%s\n}", lgt->atten_func);
 
     lgt->shade = new macs::render(
-        { &glob_isct, &ray_dir, &norm_map, &tang_map, &color_map, &ambient_map, &rpuv_map, &asten, &lgt->shadow_map,
-          &lgt->position, &lgt->direction, &lgt->color, &lgt->distr_exp, &lgt->limit_angle_cos, &lgt->atten_par },
+        { &glob_isct, &ray_dir, &norm_map, &tang_map, &ambient_map, &mirror_map, &refract_map, &uv_map,
+          &color0_map, &color1_map, &rp_map, &asten, &lgt->shadow_map, &lgt->position, &lgt->direction,
+          &lgt->color, &lgt->distr_exp, &lgt->limit_angle_cos, &lgt->atten_par },
         { &output },
 
         global_src,
@@ -187,18 +201,35 @@ void scene::add_light(light *lgt)
         "    costan_sqr = dot(facet_proj, t);\n"
         "    costan_sqr = (costan_sqr * costan_sqr) / facet_proj_sqr;\n"
         "}\n\n"
-        "ndotny_sqr *= ndotny_sqr;\n\n"
+        "ndotny_sqr *= ndotny_sqr;\n\n\n"
         "vec3 point_color = attenuation(dist) * pow(xdotr, distribution_exponent) * color;\n\n"
-        "float r = rpuv_map.x, p = rpuv_map.y;\n"
-        "float psqr = p * p;\n"
-        "float g_ndotx = ndotx / (r - r * ndotx + ndotx);\n"
-        "float g_ndoty = ndoty / (r - r * ndoty + ndoty);\n\n"
-        "float a = sqrt(p / (psqr - psqr * costan_sqr + costan_sqr));\n"
-        "float z = 1. / (1. + r * ndotny_sqr - ndotny_sqr);\n\n"
-        "z = r * (z * z);\n\n"
-        "float layer = .31830989 * a * (1. + g_ndotx * g_ndoty * (z / (4. * ndotx * ndoty) - 1.));\n\n"
+        "float l0 = 0., l1 = 0.;\n"
+        "if (color0_map.xyz != vec3(0., 0., 0.))\n"
+        "{\n"
+        "    float r = rp_map.x, p = rp_map.y;\n"
+        "    float psqr = p * p;\n"
+        "    float g_ndotx = ndotx / (r - r * ndotx + ndotx);\n"
+        "    float g_ndoty = ndoty / (r - r * ndoty + ndoty);\n\n"
+        "    float a = sqrt(p / (psqr - psqr * costan_sqr + costan_sqr));\n"
+        "    float z = 1. / (1. + r * ndotny_sqr - ndotny_sqr);\n\n"
+        "    z = r * (z * z);\n\n"
+        "    l0 = .31830989 * a * (1. + g_ndotx * g_ndoty * (z / (4. * ndotx * ndoty) - 1.));\n\n\n"
+        "    if (color1_map.xyz != vec3(0., 0., 0.))\n"
+        "    {\n"
+        "        r = rp_map.z; p = rp_map.w;\n"
+        "        psqr = p * p;\n"
+        "        g_ndotx = ndotx / (r - r * ndotx + ndotx);\n"
+        "        g_ndotx = ndoty / (r - r * ndoty + ndoty);\n\n"
+        "        a = sqrt(p / (psqr - psqr * costan_sqr + costan_sqr));\n"
+        "        z = 1. / (1. + r * ndotny_sqr - ndotny_sqr);\n\n"
+        "        z = r * (z * z);\n\n"
+        "        l1 = .31830989 * a * (1. + g_ndotx * g_ndoty * (z / (4. * ndotx * ndoty) - 1.));\n"
+        "    }\n"
+        "}\n\n\n"
         "float fresnel_appr = pow(1. - xdotny, 5.);\n\n"
-        "vec3 brdf = (color_map.rgb + (vec3(1., 1., 1.) - color_map.rgb) * fresnel_appr) * layer;",
+        "vec3 weight0 = color0_map.xyz + (vec3(1., 1., 1.) - color0_map.xyz) * fresnel_appr;\n"
+        "vec3 weight1 = color1_map.xyz + (vec3(1., 1., 1.) - color1_map.xyz) * fresnel_appr;\n\n"
+        "vec3 brdf = weight0 * l0 + (vec3(1., 1., 1.) - weight0) * weight1 * l1;",
 
         "vec4(point_color * brdf, 0.) * ndotx"
     );
@@ -237,34 +268,45 @@ void scene::render_intersection(void)
             *obj->cur_inv_trans = i->inv_trans;
             *obj->cur_normal = i->normal;
 
-            if (i->mat.color_texed)
-                *obj->isct << i->mat.color.tex;
-            else
-                *obj->cur_color_flat = i->mat.color.flat;
+            if (i->mat.ambient_texed)           *obj->isct << i->mat.ambient.tex;
+            else                                *obj->cur_ambient_flat = i->mat.ambient.flat;
 
-            if (i->mat.ambient_texed)
-                *obj->isct << i->mat.ambient.tex;
-            else
-                *obj->cur_ambient_flat = i->mat.ambient.flat;
+            if (i->mat.mirror_texed)            *obj->isct << i->mat.mirror.tex;
+            else                                *obj->cur_mirror_flat = i->mat.mirror.flat;
 
-            if (i->mat.rp_texed)
-                *obj->isct << i->mat.rp.tex;
-            else
-                *obj->cur_rp_flat = i->mat.rp.flat;
+            if (i->mat.refract_texed)           *obj->isct << i->mat.refract.tex;
+            else                                *obj->cur_refract_flat = i->mat.refract.flat;
 
-            *obj->cur_color_flat_tex = i->mat.color_texed;
+            if (i->mat.layer[0].color_texed)    *obj->isct << i->mat.layer[0].color.tex;
+            else                                *obj->cur_color0_flat = i->mat.layer[0].color.flat;
+
+            if (i->mat.layer[0].rp_texed)       *obj->isct << i->mat.layer[0].rp.tex;
+            else                                *obj->cur_rp0_flat = i->mat.layer[0].rp.flat;
+
+            if (i->mat.layer[1].color_texed)    *obj->isct << i->mat.layer[1].color.tex;
+            else                                *obj->cur_color1_flat = i->mat.layer[1].color.flat;
+
+            if (i->mat.layer[1].rp_texed)       *obj->isct << i->mat.layer[1].rp.tex;
+            else                                *obj->cur_rp1_flat = i->mat.layer[1].rp.flat;
+
             *obj->cur_ambient_flat_tex = i->mat.ambient_texed;
-            *obj->cur_rp_flat_tex = i->mat.rp_texed;
+            *obj->cur_mirror_flat_tex = i->mat.mirror_texed;
+            *obj->cur_refract_flat_tex = i->mat.refract_texed;
+            *obj->cur_color0_flat_tex = i->mat.layer[0].color_texed;
+            *obj->cur_rp0_flat_tex = i->mat.layer[0].rp_texed;
+            *obj->cur_color1_flat_tex = i->mat.layer[1].color_texed;
+            *obj->cur_rp1_flat_tex = i->mat.layer[1].rp_texed;
 
             obj->isct->bind_input();
             obj->isct->execute();
 
-            if (i->mat.color_texed)
-                *obj->isct -= i->mat.color.tex;
-            if (i->mat.ambient_texed)
-                *obj->isct -= i->mat.ambient.tex;
-            if (i->mat.rp_texed)
-                *obj->isct -= i->mat.rp.tex;
+            if (i->mat.ambient_texed)           *obj->isct -= i->mat.ambient.tex;
+            if (i->mat.mirror_texed)            *obj->isct -= i->mat.mirror.tex;
+            if (i->mat.refract_texed)           *obj->isct -= i->mat.refract.tex;
+            if (i->mat.layer[0].color_texed)    *obj->isct -= i->mat.layer[0].color.tex;
+            if (i->mat.layer[0].rp_texed)       *obj->isct -= i->mat.layer[0].rp.tex;
+            if (i->mat.layer[1].color_texed)    *obj->isct -= i->mat.layer[1].color.tex;
+            if (i->mat.layer[1].rp_texed)       *obj->isct -= i->mat.layer[1].rp.tex;
         }
     }
 }

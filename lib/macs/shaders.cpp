@@ -96,7 +96,25 @@ bool shader::compile(void)
         else
         {
             fprintf(stderr, "[sh%u] Shader compile message: %s", id, msg);
-            fprintf(stderr, "[sh%u] Shader source was:\n%s\n", id, src);
+            fprintf(stderr, "[sh%u] Shader source was:\n", id);
+
+            const char *s = src;
+            int line = 1;
+
+            while (*s)
+            {
+                fprintf(stderr, "%4i ", line);
+
+                while (*s && (*s != '\n'))
+                    fputc(*(s++), stderr);
+
+                fputc('\n', stderr);
+
+                line++;
+
+                if (*s)
+                    s++;
+            }
         }
 
         delete msg;

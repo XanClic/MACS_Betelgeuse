@@ -109,12 +109,20 @@ namespace betelgeuse
             macs::texture norm_map;
             /// Surface tangent map.
             macs::texture tang_map;
-            /// Material color map.
-            macs::texture color_map;
             /// Material ambient map.
             macs::texture ambient_map;
-            /// Material roughness/isotropy and texture UV map.
-            macs::texture rpuv_map;
+            /// Material mirror map.
+            macs::texture mirror_map;
+            /// Material refraction map.
+            macs::texture refract_map;
+            /// Texture UV map.
+            macs::texture uv_map;
+            /// Material layer 0 color map.
+            macs::texture color0_map;
+            /// Material layer 1 color map.
+            macs::texture color1_map;
+            /// Material roughness/isotropy maps for both layers (XY/ZW).
+            macs::texture rp_map;
 
             /// "Artificial" stencil buffer (for early-out in fragment shaders).
             macs::texture asten;
