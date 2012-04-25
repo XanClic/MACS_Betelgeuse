@@ -127,8 +127,14 @@ void scene::new_object_type(object *obj)
         "vec2 point_rp1     = rp1_switch     ? texture2D(raw_rp1_tex,     uv).xy  : rp1_flat;",
 
         "global_coord", "vec4(n, ndy)", "vec4(t, 0.)",
-        "vec4(point_ambient, 0.)", "vec4(point_mirror, 0.)", "point_refract", "vec4(uv, 0., 0.)",
-        "vec4(point_color0, 0.)", "vec4(point_color1, 0.)", "vec4(point_rp0, point_rp1)",
+        "vec4(ambient_switch ? texture2D(raw_ambient_tex, uv).xyz : ambient_flat, 0.)",
+        "vec4(mirror_switch  ? texture2D(raw_mirror_tex,  uv).xyz : mirror_flat,  0.)",
+        "     refract_switch ? texture2D(raw_refract_tex, uv)     : refract_flat",
+        "vec4(uv, 0., 0.)",
+        "vec4(color0_switch  ? texture2D(raw_color0_tex,  uv).xyz : color0_flat,  0.)",
+        "vec4(color1_switch  ? texture2D(raw_color1_tex,  uv).xyz : color1_flat,  0.)",
+        "vec4(rp0_switch     ? texture2D(raw_rp0_tex,     uv).xy  : rp0_flat,"
+             "rp1_switch     ? texture2D(raw_rp1_tex,     uv).xy  : rp1_flat)",
         "vec4(1., 0., 0., 0.)", "par / zfar"
     );
 
