@@ -77,7 +77,7 @@ macs::texture *tex_from_bitmap(const char *path)
     fclose(fp);
 
 
-    macs::texture *t = new macs::texture("color_tex", w, h);
+    macs::texture *t = new macs::texture("color_tex", false, w, h);
     t->write(buf);
 
     delete[] buf;

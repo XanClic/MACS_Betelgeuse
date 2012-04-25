@@ -8,7 +8,7 @@
 using namespace macs;
 
 
-texture::texture(const char *n, int w, int h)
+texture::texture(const char *n, bool discrete, int w, int h)
 {
     width  = (w <= 0) ? internals::width  : w;
     height = (h <= 0) ? internals::height : h;
@@ -22,8 +22,8 @@ texture::texture(const char *n, int w, int h)
 
     (*internals::tmu_mgr)[0] = this;
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, discrete ? GL_NEAREST : GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, discrete ? GL_NEAREST : GL_LINEAR);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F_ARB, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
 }

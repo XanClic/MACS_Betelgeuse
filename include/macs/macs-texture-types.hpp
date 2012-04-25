@@ -40,10 +40,15 @@ namespace macs
              * specified during the <tt>macs::init()</tt> call.
              *
              * @param name Name which is used to denote this texture in scripts
+             * @param discrete Set this parameter to true to create a kind of
+             *                 discrete (unfiltered) texture. This is useful for
+             *                 calculation textures, but not so for ones
+             *                 actually used as textures in the old-fashioned
+             *                 way.
              * @param width Texture width (defaults to fundamental width)
              * @param height Texture height (defaults to fundamental height)
              */
-            texture(const char *name, int width = -1, int height = -1);
+            texture(const char *name, bool discrete = true, int width = -1, int height = -1);
 
             /**
              * Destroys a texture.
