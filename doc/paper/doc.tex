@@ -24,7 +24,7 @@
 \maketitle
 
 \begin{abstract}
-    This paper deals with using standard OpenGL graphics cards (2.1 and up with FBO extension) for hardware acceleration of ray tracing. For this it is necessary to transform the well-known recursive algorithms into iterative ones with
+    This paper deals with using standard OpenGL graphics cards (2.0 and up with FBO extension) for hardware acceleration of ray tracing. For this it is necessary to transform the well-known recursive algorithms into iterative ones with
     comparably low execution time complexity. \par
     The result is an algorithm capable of running on today's standard rasterizing graphics hardware in real-time.
 \end{abstract}
@@ -122,7 +122,9 @@ Each material property may be textured. This is done by another user-defined fun
 material attribute value for the respective pixel.
 
 Also, each material property may be freely assigned by a dynamic function (which is what shaders are used for in rasterization). This is really trivial since this is basically equal to texturing, but where the latter uses
-{\tt texture2D(texture, uv\_coordinate)}, the completely user-defined function would be called.
+{\tt texture2D(texture, uv\_coordinate)}, the completely user-defined function would be called. Note that this has not been implemented in the example implementation because of optimizing problems (such a user-defined function
+would require a new object prototype, therefore requiring one object class per object instance). There is probably no solution to this problem, however, since arbitrary shading will presumably not be used too often, there is
+none needed whatsoever. Because of those circumstances, such dynamic functions have not been implemented yet.
 
 In the end, the output buffers contain all surface intersection properties for every pixel there is.
 
@@ -188,22 +190,30 @@ It was thus possible to create a general ray tracing algorithm with a complexity
     \item $n_r$ is the number of recursions (plus one for the initial call)
 \end{itemize}
 
-This is exactly the same complexity as for the general ray tracing algorithm. Hence we were able to create an equivalent representation of that algorithm for usage on standard OpenGL 2.1 compatible graphics hardware, which was exactly
+This is exactly the same complexity as for the general ray tracing algorithm. Hence we were able to create an equivalent representation of that algorithm for usage on standard OpenGL 2.0 compatible graphics hardware, which was exactly
 the goal set in the first place.
+
+\subsection{Early-out}
+
+Many of the shaders are in fact quite complex programs, including conditional operations. These are not natively supported in early shader models, therefore heavily increasing execution time (especially, since the {\tt discard} keyword
+is not interpreted as intended).
+
+Note however, that the number of GPUs supporting shading but no early-out is comparably small (and those are obviously quite old).
 
 \subsection{Example implementation}
 
 As mentioned in the respective sections, MACS and Betelgeuse together are a sample implementation of the methods mentioned here. MACS implements an interface for carrying out parallel computions on graphics hardware, while Betelgeuse
 uses that interface for implementing the ray tracing algorithm described here.
 
-MACS/Betelgeuse proves that the approach taken here is actually applicable and yields the desired results (strong acceleration through OpenGL 2.1 compatible graphics hardware).
+MACS/Betelgeuse proves that the approach taken here is actually applicable and yields the desired results (strong acceleration through OpenGL 2.0 compatible graphics hardware).
 
 \subsection{Comparison}
 
 \subsubsection{One object, two lights}
 
 \begin{figure}[!ht]
-    {\centering \resizebox*{3in}{2.5in}{\includegraphics{earth.png}}}
+    \centering \resizebox*{3in}{2.5in}{\includegraphics{earth.png}}
+    \caption{Scaled sphere with an earth surface texture, being lit by two different point light sources}
 \end{figure}
 
 Rendering time of the given image:
@@ -217,7 +227,7 @@ Rendering time of the given image:
     \item $1024 \times 1024$:
         \begin{itemize}
             \item 1400 ms on CPU
-            \item 12.7 FPS (79 ms) on FPU
+            \item 12.7 FPS (79 ms) on GPU
         \end{itemize}
         Speed-up: 18 times
 \end{itemize}
