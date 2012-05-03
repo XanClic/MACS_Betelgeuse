@@ -1,8 +1,8 @@
 CXX ?= g++
-CXXFLAGS += -g -O3 -Wall -Wextra -Wshadow -Wno-switch -std=c++0x -Iinclude -D_POSIX_C_SOURCE=201204 -DGL_GLEXT_PROTOTYPES -UGL_GLEXT_LEGACY $(shell sdl-config --cflags)
+CXXFLAGS += -g -O3 -Wall -Wextra -Wshadow -Wno-switch -std=gnu++0x -Iinclude -D_POSIX_C_SOURCE=201204 -DGL_GLEXT_PROTOTYPES -UGL_GLEXT_LEGACY $(shell sdl-config --cflags)
 LIBCXXFLAGS += -Iinclude/macs -Iinclude/betelgeuse
 LINK ?= $(CXX)
-LDFLAGS += -Llib -lbetelgeuse -lmacs $(shell sdl-config --libs) -lopengl32 -lglu32 -lm
+LDFLAGS += -Llib -lbetelgeuse -lmacs $(shell sdl-config --libs) -lopengl32 -lglu32 -lglew32 -lm
 
 AR ?= ar
 RM ?= rm

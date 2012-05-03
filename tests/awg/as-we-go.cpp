@@ -6,10 +6,15 @@
 #include <string>
 #include <sys/time.h>
 
-#include "SDL.h"
+#include <SDL/SDL.h>
 
 #include <macs/macs.hpp>
 #include <betelgeuse/betelgeuse.hpp>
+
+
+#ifndef M_PI
+#define M_PI 3.141592f
+#endif
 
 
 #define DOUBLE_BUF true
@@ -40,12 +45,25 @@ macs::texture *tex_from_bitmap(const char *path)
         return NULL;
 
 
+    fseek(fp, 0, SEEK_END);
+    long lof = ftell(fp);
+    fseek(fp, ofs, SEEK_SET);
+
+
+    unsigned char *content = new unsigned char[lof - ofs];
+    fread(content, lof - ofs, 1, fp);
+    fclose(fp);
+
+
     bool neg_h = h < 0;
 
     if (neg_h)
         h = -h;
 
     macs::formats::f2103 *buf = new macs::formats::f2103[w * h];
+
+
+    int i = 0;
 
     if (neg_h)
     {
@@ -54,9 +72,9 @@ macs::texture *tex_from_bitmap(const char *path)
             for (int x = 0; x < w; x++)
             {
                 if (bpp == 24)
-                    buf[y * w + x] = macs::formats::f2103({ fgetc(fp) / 255.f, fgetc(fp) / 255.f, fgetc(fp) / 255.f, 0.f });
+                    buf[y * w + x] = macs::formats::f2103({ content[i++] / 255.f, content[i++] / 255.f, content[i++] / 255.f, 0.f });
                 else
-                    buf[y * w + x] = macs::formats::f2103({ fgetc(fp) / 255.f, fgetc(fp) / 255.f, fgetc(fp) / 255.f, fgetc(fp) / 255.f });
+                    buf[y * w + x] = macs::formats::f2103({ content[i++] / 255.f, content[i++] / 255.f, content[i++] / 255.f, content[i++] / 255.f });
             }
         }
     }
@@ -67,14 +85,12 @@ macs::texture *tex_from_bitmap(const char *path)
             for (int x = 0; x < w; x++)
             {
                 if (bpp == 24)
-                    buf[y * w + x] = macs::formats::f2103({ fgetc(fp) / 255.f, fgetc(fp) / 255.f, fgetc(fp) / 255.f, 0.f });
+                    buf[y * w + x] = macs::formats::f2103({ content[i++] / 255.f, content[i++] / 255.f, content[i++] / 255.f, 0.f });
                 else
-                    buf[y * w + x] = macs::formats::f2103({ fgetc(fp) / 255.f, fgetc(fp) / 255.f, fgetc(fp) / 255.f, fgetc(fp) / 255.f });
+                    buf[y * w + x] = macs::formats::f2103({ content[i++] / 255.f, content[i++] / 255.f, content[i++] / 255.f, content[i++] / 255.f });
             }
         }
     }
-
-    fclose(fp);
 
 
     macs::texture *t = new macs::texture("color0_tex", false, w, h);
@@ -160,7 +176,14 @@ extern "C" int main(int argc, char *argv[])
 
     betelgeuse::instance *spi = sphere.instantiate();
 
-    spi->mat.layer[0].color.tex = tex_from_bitmap("tests/awg/earth.bmp");
+    macs::texture *sphere_tex = tex_from_bitmap("tests/awg/earth.bmp");
+    if (sphere_tex == NULL)
+    {
+        perror("Could not load sphere texture");
+        exit(1);
+    }
+
+    spi->mat.layer[0].color.tex = sphere_tex;
     spi->mat.layer[0].color_texed = true;
 
 

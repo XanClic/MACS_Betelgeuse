@@ -1,8 +1,7 @@
 #include <list>
 
-#include <GL/gl.h>
-
 #include <macs/macs.hpp>
+#include <macs/macs-internals.hpp>
 
 #include "betelgeuse.hpp"
 
