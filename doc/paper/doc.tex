@@ -4,6 +4,8 @@
 \usepackage{babel}
 \usepackage{graphics}
 \usepackage{cite}
+\usepackage{upgreek}
+\usepackage{hyperref}
 
 \setlength{\textheight}{23cm}
 \setlength{\topmargin}{-0.5cm}
@@ -209,28 +211,100 @@ MACS/Betelgeuse proves that the approach taken here is actually applicable and y
 
 \subsection{Comparison}
 
+Comparison between software and GPU ray tracing was done with two programs:
+\begin{itemize}
+    \item Software ray tracer: softray (no real name), very similar to Betelgeuse, does, however, not support textures. Able to run multi-threaded arbitrarily up to one thread per row (i.e., 512 resp. 1024 pixels). Scenes are loaded via
+        Lua scripts.
+    \item GPU ray tracer: MACS/Betelgeuse. Scenes are given via programs linked to those libraries.
+\end{itemize}
+
+If softray uses multithreading, it creates two threads per logical processor core online (whatever {\tt sysconf(\_SC\_PROCESSORS\_ONLN)} returns). All of the CPU tests here were done in this way.
+
+The tested CPUs were the following:
+\begin{itemize}
+    \item Intel Pentium D Presler 930 (3.0 GHz) -- a lower mid-range dual-core NetBurst CPU for desktop computers in 2006 with 12 GFLOPS.
+    \item Intel Pentium Dual-Core T2310 (1.46 GHz) -- a relatively low-end Core CPU for notebooks in 2007 with 11.7 GFLOPS.
+    \item Intel Core i5-3570K (3.4 GHz) -- a higher mid-range Ivy Bridge CPU for desktop computers in 2012 with 108.8 GFLOPS.
+\end{itemize}
+
+The tested GPUs were the following:
+\begin{itemize}
+    \item ATI Radeon X1600 -- a mid-range graphics card for desktop computers in 2006 (OpenGL 2.1) with 73 GFLOPS.
+    \item Intel GM965 (GMA X3100) -- a standard integrated graphics chip for notebooks in 2007 (OpenGL 2.1) with probably between 10 and 30 GFLOPS.
+    \item AMD Radeon HD 7850 -- a high mid-range graphics card for desktop computers in 2012 (OpenGL 4.2) with 1761 GFLOPS.
+\end{itemize}
+
 \subsubsection{One object, two lights}
 
-\begin{figure}[!ht]
-    \centering \resizebox*{3in}{2.5in}{\includegraphics{earth.png}}
-    \caption{Scaled sphere with an earth surface texture, being lit by two different point light sources}
+\begin{figure}[ht]
+    \centering \resizebox*{2.5in}{2.5in}{\includegraphics{earth.png}}
+    \caption{Sphere with an earth surface texture, being lit by two different point light sources}
+    \label{fig1}
 \end{figure}
 
-Rendering time of the given image:
+Rendering time of figure \ref{fig1}:
 \begin{itemize}
     \item $512 \times 512$:
         \begin{itemize}
-            \item 370 ms in a single-threaded software ray tracer, very similar to Betelgeuse (non-textured); single-threaded on a Pentium D with 3.0 GHz
-            \item 51.8 FPS (19 ms) on Betelgeuse; on a Radeon X1600
+            \item Presler 930: 300 ms
+            \item T2310: 220 ms
+            \item GM965: 83 ms
+            \item 3570K: 35 ms
+            \item X1600: 19 ms
+            \item HD 7850: 1190 $\upmu$s
         \end{itemize}
-        Speed-up: 19 times
     \item $1024 \times 1024$:
         \begin{itemize}
-            \item 1400 ms on CPU
-            \item 12.7 FPS (79 ms) on GPU
+            \item Presler 930: 1150 ms
+            \item T2310: 720 ms
+            \item 3570K: 125 ms
+            \item GM965: 290 ms
+            \item X1600: 79 ms
+            \item HD 7850: 4.4 ms
         \end{itemize}
-        Speed-up: 18 times
 \end{itemize}
+
+\subsubsection{Two objects, two lights}
+
+\begin{figure}[ht]
+    \centering \resizebox*{2.5in}{2.5in}{\includegraphics{earth-shadow.png}}
+    \caption{Sphere with an earth surface texture in front of a non-textured white plane, being lit by two different point light sources}
+    \label{fig2}
+\end{figure}
+
+Rendering time of figure \ref{fig2}:
+\begin{itemize}
+    \item $512 \times 512$:
+        \begin{itemize}
+            \item T2310: 780 ms
+            \item 3570K: 150 ms
+            \item GM965: 120 ms
+            \item HD 7850: 2.8 ms
+        \end{itemize}
+    \item $1024 \times 1024$:
+        \begin{itemize}
+            \item T2310: 2600 ms
+            \item 3570K: 520 ms
+            \item GM965: 430 ms
+            \item HD 7850: 9.7 ms
+        \end{itemize}
+\end{itemize}
+
+\subsubsection{Comparison conclusion}
+
+The first result is one that does not support the thesis that CPUs are always worse than GPUs for ray tracing, though it did not appear unexpectedly: The i5-3570K offers 108.8 GFLOPS of computing power, much more than the X1600 with
+73 GFLOPS -- the latter is however significantly faster in all test runs. This is probably because it is much harder to optimize correctly for SIMD on CPU than on GPU. The sole purpose of shader units on a GPU is to do SIMD
+calculations, therefore every fragment shader will be compiled and deployed to every execution unit and may thus use the full computational power. The CPU however is grained much finer: First, there are the cores and second, there are
+the SIMD units per core. Most programming languages are by design SISD. It is hence difficult for a compiler to find vectorizable code and transform it accordingly -- deploying independent code to every core is easy, but using all
+SIMD units at full capacity is not.
+
+The only practical solution would be to write specialized routines in assembly and using them just like shaders for the on-GPU calculations. This is, however, ineffective, because of three reasons:
+\begin{enumerate}
+    \item Writing good assembly is hard.
+    \item One would lose the possibility for nice high-level optimizations (effective early-out, very dynamic recursion depth, etc.).
+    \item GPUs are better anyway (so why care?).
+\end{enumerate}
+
 
 \bibliography{doc}
 
