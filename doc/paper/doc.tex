@@ -28,7 +28,8 @@
 \begin{abstract}
     This paper deals with using standard OpenGL graphics cards (2.0 and up with FBO extension) for hardware acceleration of ray tracing. For this it is necessary to transform the well-known recursive algorithms into iterative ones with
     comparably low execution time complexity. \par
-    The result is an algorithm capable of running on today's standard rasterizing graphics hardware in real-time.
+    The result is an algorithm capable of taking much advantage of today's standard rasterizing graphics hardware. \par
+    Note that any optimization of the standard ray tracing algorithm (e.g., BSPs) is not part of this paper -- it uses the standard algorithm with linear execution time complexity, both regarding objects and light sources.
 \end{abstract}
 
 
@@ -49,15 +50,16 @@ There are also several attempts of using GPGPU for hardware-accelerated ray trac
 use cases (e.g., only triangles as primitives) and thus using modern general-purpose CPUs for real-time rendering. Finally, there were those approaches creating specifically-designed hardware for acceleration, none of which actually
 succeeded.
 
-I don't think that specific ray tracing hardware will replace standard graphics cards in the consumer area anytime soon. Furthermore, it is obvious that CPUs are not very suitable for ray tracing. They are designed for all types of
-computations, especially single-threaded ones. Ray tracing, on the other hand, does not need most of the capabilities a CPU offers and is nearly arbitrarily parallelizable, directly suggesting GPGPU usage instead.
+I don't think that specific ray tracing hardware will replace standard graphics cards in the consumer area anytime soon. On the other hand, it is obvious that CPUs are not very suitable for ray tracing. They are designed for all types of
+computations, especially single-threaded ones. Ray tracing, in contrast, does not need most of the capabilities a CPU offers and is nearly arbitrarily parallelizable, directly suggesting GPGPU usage instead.
 
 In conclusion we have to find a way to execute ray tracing on modern graphics hardware whose purpose is strictly speaking rasterizing, but which offer enough parallel computational power to also benefit ray tracing.
 
 
 \section{General implementation}
 
-As suggested by this paper's title, it will not deal with an OpenCL implementation, but with an OpenGL one. There are (at least) two methods of involving a GPU in the rendering process:
+As suggested by this paper's title, it will not deal with an OpenCL implementation, but with an OpenGL one (in practice, there is not big of a difference, anyway). There are (at least) two methods of involving a GPU in the rendering
+process:
 \begin{enumerate}
     \item GPU-assisted: Pass many simple calculations such as matrix multiplications to the GPU, retrieve the output and use the results in mostly on-CPU ray tracing.
     \item Fully GPU-based: Pass all input data (objects, object transformations, etc.) to GPU programs and retrieve the fully-rendered output image.
@@ -66,8 +68,8 @@ As suggested by this paper's title, it will not deal with an OpenCL implementati
 The first approach may seem simple at the first glance, however, it is not. One has to gather all required calculations (which have to be of the same kind), put them into a texture, read the results back and distribute them -- such a
 gathering and distribution system seems rather complicated and will probably be even slower than doing everything right on the CPU. Thus, the only reasonable approach is the second one.
 
-This approach is synchronous multi-threaded. It is obviously multi-threaded, and it is synchronous, because it does one calculation for every pixel and stops after that calculation has been carried out on all of them. A drawback is
-that this is not as fast as maybe possible, but it also offers one great advantage when it comes to shadow calculation.
+The approach taken here is synchronous multi-threaded. It is obviously multi-threaded, and it is synchronous, because it does one calculation for every pixel and stops after that calculation has been carried out on all of them. A
+drawback is that this is not as fast as maybe possible, but it also offers one great advantage when it comes to shadow calculation.
 
 The desired result is now a fully rendered image which does not need any post-processing and may be displayed directly on screen. Hence, every calculation must be executed per pixel and will be executed on every single one.
 Every step will thus be carried out via frame buffer objects on textures.
@@ -167,8 +169,9 @@ Recursive ray tracing enables refraction and reflection. For both phenomenons tw
 recursive rays is a general ray tracing problem and will thus not be discussed further in here.
 
 There is however an interesting problem: Finding the terminating condition. Normally, one would simply trace until no recursion is necessary anymore or a certain number of recursive calls have been made. Basically this would mean
-one would have to do recursive tracing until no pixel needs any recursion anymore (or there are too less). Generally, occlusion queries are ideal for this use case, they did, however, not work for me. The other approach would then be to
-carry out a fixed number of recursion levels.
+one would have to do recursive tracing until no pixel needs any recursion anymore (or there are too less). Generally, occlusion queries are ideal for this use case, they did, however, not work for me.
+
+The other approach would then be to carry out a fixed number of recursion levels; this could be optimized by creating stencils for taking advantage of early-out.
 
 \subsection{Implementation}
 
@@ -195,9 +198,11 @@ It was thus possible to create a general ray tracing algorithm with a complexity
 This is exactly the same complexity as for the general ray tracing algorithm. Hence we were able to create an equivalent representation of that algorithm for usage on standard OpenGL 2.0 compatible graphics hardware, which was exactly
 the goal set in the first place.
 
+Note that there are several techniques for bringing the time complexity of ray tracing down to logarithmic complexity (e.g., BSPs), but they are not part of the plain standard algorithm and thus not considered here.
+
 \subsection{Early-out}
 
-Many of the shaders are in fact quite complex programs, including conditional operations. These are not natively supported in early shader models, therefore heavily increasing execution time (especially, since the {\tt discard} keyword
+Many of the shaders are in fact quite complex programs, including conditional operations. These are not natively supported in early shader models, therefore heavily increasing execution time (especially since the {\tt discard} keyword
 is not interpreted as intended).
 
 Note however, that the number of GPUs supporting shading but no early-out is comparably small (and those are obviously quite old).
@@ -242,27 +247,23 @@ The tested GPUs were the following:
     \label{fig1}
 \end{figure}
 
-Rendering time of figure \ref{fig1}:
-\begin{itemize}
-    \item $512 \times 512$:
-        \begin{itemize}
-            \item Presler 930: 300 ms
-            \item T2310: 220 ms
-            \item GM965: 83 ms
-            \item 3570K: 35 ms
-            \item X1600: 19 ms
-            \item HD 7850: 1190 $\upmu$s
-        \end{itemize}
-    \item $1024 \times 1024$:
-        \begin{itemize}
-            \item Presler 930: 1150 ms
-            \item T2310: 720 ms
-            \item 3570K: 125 ms
-            \item GM965: 290 ms
-            \item X1600: 79 ms
-            \item HD 7850: 4.4 ms
-        \end{itemize}
-\end{itemize}
+\begin{tabular}{c|ll}
+    Resolution         & CPU/GPU     & Render time \\ \hline \hline
+    $ 512 \times  512$ & Presler 930 & 300 ms      \\ \cline{2-3}
+                       & T2310       & 220 ms      \\ \cline{2-3}
+                       & GM965       &  83 ms      \\ \cline{2-3}
+                       & 3570K       &  35 ms      \\ \cline{2-3}
+                       & X1600       &  19 ms      \\ \cline{2-3}
+                       & HD 7850     & 1.19 ms     \\ \hline \hline
+    $1024 \times 1024$ & Presler 930 & 1.15 s      \\ \cline{2-3}
+                       & T2310       & 720 ms      \\ \cline{2-3}
+                       & GM965       & 290 ms      \\ \cline{2-3}
+                       & 3570K       & 125 ms      \\ \cline{2-3}
+                       & X1600       &  79 ms      \\ \cline{2-3}
+                       & HD 7850     & 4.4 ms
+\end{tabular}
+
+(Refer to Fig. \ref{fig1} for the rendered image)
 
 \subsubsection{Two objects, two lights}
 
@@ -272,23 +273,19 @@ Rendering time of figure \ref{fig1}:
     \label{fig2}
 \end{figure}
 
-Rendering time of figure \ref{fig2}:
-\begin{itemize}
-    \item $512 \times 512$:
-        \begin{itemize}
-            \item T2310: 780 ms
-            \item 3570K: 150 ms
-            \item GM965: 120 ms
-            \item HD 7850: 2.8 ms
-        \end{itemize}
-    \item $1024 \times 1024$:
-        \begin{itemize}
-            \item T2310: 2600 ms
-            \item 3570K: 520 ms
-            \item GM965: 430 ms
-            \item HD 7850: 9.7 ms
-        \end{itemize}
-\end{itemize}
+\begin{tabular}{c|ll}
+    Resolution         & CPU/GPU     & Render time \\ \hline \hline
+    $ 512 \times  512$ & T2310       & 780 ms      \\ \cline{2-3}
+                       & 3570K       & 150 ms      \\ \cline{2-3}
+                       & GM965       & 120 ms      \\ \cline{2-3}
+                       & HD 7850     & 2.8 ms      \\ \hline \hline
+    $1024 \times 1024$ & T2310       & 2600 ms     \\ \cline{2-3}
+                       & 3570K       & 520 ms      \\ \cline{2-3}
+                       & GM965       & 430 ms      \\ \cline{2-3}
+                       & HD 7850     & 9.7 ms
+\end{tabular}
+
+(Refer to Fig. \ref{fig2} for the rendered image)
 
 \subsubsection{Comparison conclusion}
 
