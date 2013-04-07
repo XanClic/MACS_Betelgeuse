@@ -298,7 +298,7 @@ extern "C" int main(int argc, char *argv[])
     planet earth  (sphere, "tests/planets/earth.bmp", "tests/planets/earth_spec.bmp", 365.256f, .9973f, 1.f, .3f);
     planet mars   (sphere, "tests/planets/mars.bmp", 686.98f, 1.026f, 1.524f, .15f);
 
-    planet moon(sphere, &earth, "tests/planets/moon.bmp", 27.3217f, 27.3217f, .15f, .05f);
+    planet moon(sphere, &earth, "tests/planets/moon.bmp", 27.3217f, 27.3217f, .15f, .08f);
 
     planet sun(sphere, "tests/planets/sun.bmp", 25.38f, .5f);
 
