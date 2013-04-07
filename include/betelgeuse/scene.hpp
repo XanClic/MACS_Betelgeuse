@@ -71,6 +71,8 @@ namespace betelgeuse
             void render_shadows(void);
             /// Does the light shading.
             void render_shading(void);
+            /// Adds the ambient lighting.
+            void render_ambient(void);
 
 
             /// Display aspect.
@@ -129,6 +131,9 @@ namespace betelgeuse
 
             /// Initial view rendering object.
             macs::render *rnd_view;
+
+            /// Ambient light rendering object.
+            macs::render *rnd_ambient;
 
             /// Current light source position (for shadow calculation).
             macs::types::named<macs::types::vec4> cur_light_pos;

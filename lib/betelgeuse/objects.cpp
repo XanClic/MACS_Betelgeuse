@@ -87,6 +87,7 @@ instance *object::instantiate(void)
 
 
 instance::instance(object *o):
+    cast_shadows(true),
     obj(o)
 {
 }

@@ -56,6 +56,19 @@ scene::scene(void):
     );
 
     rnd_view->use_depth(true, render::always);
+
+
+    rnd_ambient = new macs::render(
+        { &ambient_map, &asten },
+        { &output },
+        "",
+        "if (stencil.x < .5)\n"
+        "    discard;",
+
+        "ambient_map"
+    );
+
+    rnd_ambient->blend_func(render::use, render::use);
 }
 
 scene::~scene(void)
@@ -126,14 +139,13 @@ void scene::new_object_type(object *obj)
         "vec2 point_rp1     = rp1_switch     ? texture2D(raw_rp1_tex,     uv).xy  : rp1_flat;",
 
         "global_coord", "vec4(n, ndy)", "vec4(t, 0.)",
-        "vec4(ambient_switch ? texture2D(raw_ambient_tex, uv).xyz : ambient_flat, 0.)",
-        "vec4(mirror_switch  ? texture2D(raw_mirror_tex,  uv).xyz : mirror_flat,  0.)",
-        "     refract_switch ? texture2D(raw_refract_tex, uv)     : refract_flat",
+        "vec4(point_ambient, 0.)",
+        "vec4(point_mirror, 0.)",
+        "     point_refract",
         "vec4(uv, 0., 0.)",
-        "vec4(color0_switch  ? texture2D(raw_color0_tex,  uv).xyz : color0_flat,  0.)",
-        "vec4(color1_switch  ? texture2D(raw_color1_tex,  uv).xyz : color1_flat,  0.)",
-        "vec4(rp0_switch     ? texture2D(raw_rp0_tex,     uv).xy  : rp0_flat,"
-             "rp1_switch     ? texture2D(raw_rp1_tex,     uv).xy  : rp1_flat)",
+        "vec4(point_color0, 0.)",
+        "vec4(point_color1, 0.)",
+        "vec4(point_rp0, point_rp1)",
         "vec4(1., 0., 0., 0.)", "par / zfar"
     );
 
@@ -236,7 +248,7 @@ void scene::add_light(light *lgt)
         "vec3 weight1 = color1_map.xyz + (vec3(1., 1., 1.) - color1_map.xyz) * fresnel_appr;\n\n"
         "vec3 brdf = weight0 * l0 + (vec3(1., 1., 1.) - weight0) * weight1 * l1;",
 
-        "vec4(point_color * brdf, 0.) * ndotx"
+        "vec4(point_color * brdf, 0.) * ndotx + vec4(ambient_map.xyz, 0.)"
     );
 
     lgt->shade->blend_func(render::use, render::use);
@@ -251,6 +263,7 @@ void scene::render(void)
     render_intersection();
     render_shadows();
     render_shading();
+    render_ambient();
 }
 
 
@@ -327,6 +340,9 @@ void scene::render_shadows(void)
 
         for (auto i: obj->insts)
         {
+            if (!i->cast_shadows)
+                continue;
+
             for (auto lgt: lgts)
             {
                 *obj->shadow >> &lgt->shadow_map;
@@ -364,6 +380,13 @@ void scene::render_shading(void)
 
         lgt->shade->execute();
     }
+}
+
+void scene::render_ambient(void)
+{
+    rnd_ambient->prepare();
+    rnd_ambient->bind_input();
+    rnd_ambient->execute();
 }
 
 void scene::display(void)

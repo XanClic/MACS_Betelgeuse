@@ -393,6 +393,16 @@ void render::bind_input(void)
 
 void render::execute(void)
 {
+#ifdef DEBUG
+    if (fbos > 1)
+    {
+        dbgprintf("[rnd] %i common passes:", fbos);
+        for (int i = 0; i < fbos; i++)
+            fprintf(stderr, " rnd%u", ids[i]);
+        fprintf(stderr, "\n");
+    }
+#endif
+
     for (int i = 0; i < fbos; i++)
     {
         if (i || !freshly_prepared)
@@ -409,6 +419,8 @@ void render::execute(void)
 
         for (auto obj: inp_objs)
         {
+            dbgprintf("[rnd%u] %s\n", ids[i], obj->i_name);
+
             if ((obj->i_type == in::t_texture) || (obj->i_type == in::t_texture_array))
                 prgs[i].uniform((std::string("raw_") + obj->i_name).c_str()) = obj;
             else

@@ -52,6 +52,9 @@ namespace betelgeuse
             /// Material assigned to this instance.
             material mat;
 
+            /// True if this instance should cast shadows.
+            bool cast_shadows;
+
 
             friend class scene;
 
