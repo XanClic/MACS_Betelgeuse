@@ -113,6 +113,7 @@ class planet
     public:
         planet(betelgeuse::object &base, const char *color_bmp, const char *rp_bmp, float year, float day, float distance, float radius);
         planet(betelgeuse::object &base, const char *color_bmp, float year, float day, float distance, float radius);
+        planet(betelgeuse::object &base, planet *parent, const char *color_bmp, float year, float day, float distance, float radius);
         planet(betelgeuse::object &base, const char *ambient_bmp, float day, float radius);
         ~planet(void);
 
@@ -121,8 +122,10 @@ class planet
 
     private:
         betelgeuse::instance *inst;
+        macs::types::mat4 translated;
         float d, y;
         float dist, rad;
+        planet *par;
 };
 
 
@@ -130,7 +133,8 @@ planet::planet(betelgeuse::object &base, const char *color_bmp, const char *rp_b
     d(day),
     y(year),
     dist(distance),
-    rad(radius)
+    rad(radius),
+    par(NULL)
 {
     inst = base.instantiate();
 
@@ -145,7 +149,21 @@ planet::planet(betelgeuse::object &base, const char *color_bmp, float year, floa
     d(day),
     y(year),
     dist(distance),
-    rad(radius)
+    rad(radius),
+    par(NULL)
+{
+    inst = base.instantiate();
+
+    inst->mat.layer[0].color.tex = tex_from_bitmap("color0_tex", color_bmp);
+    inst->mat.layer[0].color_texed = true;
+}
+
+planet::planet(betelgeuse::object &base, planet *parent, const char *color_bmp, float year, float day, float distance, float radius):
+    d(day),
+    y(year),
+    dist(distance),
+    rad(radius),
+    par(parent)
 {
     inst = base.instantiate();
 
@@ -183,13 +201,28 @@ planet::~planet(void)
 
 void planet::update(float days_gone)
 {
-    inst->trans = macs::types::mat4();
-    inst->trans.translate(macs::types::vec3(-dist * 5.f * sinf(days_gone / y * 2.f * static_cast<float>(M_PI)),
-                                             dist * 5.f * cosf(days_gone / y * 2.f * static_cast<float>(M_PI)),
-                                            -10.f));
-    inst->trans.scale(macs::types::vec3(rad, rad, rad));
+    float z;
+
+    if (par == NULL)
+    {
+        translated = macs::types::mat4();
+        z = -10.f;
+    }
+    else
+    {
+        translated = par->translated;
+        z = 0.f;
+    }
+
+    translated.translate(macs::types::vec3(-dist * 5.f * sinf(days_gone / y * 2.f * static_cast<float>(M_PI)),
+                                            dist * 5.f * cosf(days_gone / y * 2.f * static_cast<float>(M_PI)),
+                                            z));
+
+    inst->trans = translated;
     inst->trans.rotate(static_cast<float>(M_PI_2), macs::types::vec3(1.f, 0.f, 0.f));
     inst->trans.rotate(days_gone / d * 2.f * static_cast<float>(M_PI), macs::types::vec3(0.f, 1.f, 0.f));
+    inst->trans.scale(macs::types::vec3(rad, rad, rad));
+
     inst->update_transformation();
 }
 
@@ -259,6 +292,8 @@ extern "C" int main(int argc, char *argv[])
     planet earth  (sphere, "tests/planets/earth.bmp", "tests/planets/earth_spec.bmp", 365.256f, .9973f, 1.f, .3f);
     planet mars   (sphere, "tests/planets/mars.bmp", 686.98f, 1.026f, 1.524f, .15f);
 
+    planet moon(sphere, &earth, "tests/planets/moon.bmp", 27.3217f, 27.3217f, .15f, .05f);
+
     planet sun(sphere, "tests/planets/sun.bmp", 25.38f, .5f);
 
 
@@ -292,7 +327,7 @@ extern "C" int main(int argc, char *argv[])
 
         days_gone += time_gone / 1000000.f * days_per_second;
 
-        for (planet *p: { &sun, &mercury, &venus, &earth, &mars })
+        for (planet *p: { &sun, &mercury, &venus, &earth, &moon, &mars })
             p->update(days_gone);
 
 
