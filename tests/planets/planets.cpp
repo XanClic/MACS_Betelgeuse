@@ -255,7 +255,7 @@ extern "C" int main(int argc, char *argv[])
 
 
     planet mercury(sphere, "tests/planets/mercury.bmp", 87.969f, 58.65f, .3871f, .1f);
-    planet venus  (sphere, "tests/planets/venus.bmp", 224.701f, 243.019f, .723f, .3f);
+    planet venus  (sphere, "tests/planets/venus.bmp", 224.701f, -243.019f, .723f, .3f);
     planet earth  (sphere, "tests/planets/earth.bmp", "tests/planets/earth_spec.bmp", 365.256f, .9973f, 1.f, .3f);
     planet mars   (sphere, "tests/planets/mars.bmp", 686.98f, 1.026f, 1.524f, .15f);
 
