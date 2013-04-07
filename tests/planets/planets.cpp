@@ -22,6 +22,8 @@
 #define RESOLUTION_X 1680
 #define RESOLUTION_Y 1050
 
+#define FULLSCREEN
+
 
 macs::texture *tex_from_bitmap(const char *as, const char *path)
 {
@@ -238,7 +240,11 @@ extern "C" int main(int argc, char *argv[])
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, DOUBLE_BUF);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
+#ifdef FULLSCREEN
+    SDL_SetVideoMode(RESOLUTION_X, RESOLUTION_Y, 32, SDL_OPENGL | (DOUBLE_BUF * SDL_DOUBLEBUF) | SDL_FULLSCREEN);
+#else
     SDL_SetVideoMode(RESOLUTION_X, RESOLUTION_Y, 32, SDL_OPENGL | (DOUBLE_BUF * SDL_DOUBLEBUF));
+#endif
 
     SDL_WM_SetCaption("Planets - 1x", NULL);
 
@@ -365,6 +371,9 @@ extern "C" int main(int argc, char *argv[])
                         break;
                     case SDLK_DOWN:
                         days_per_second /= 10.f;
+                        break;
+                    case SDLK_ESCAPE:
+                        quit = true;
                         break;
                 }
 
